@@ -9,7 +9,8 @@ import type {
   BookingConfirmation,
   BookingRequestPayload,
 } from "@/lib/booking-types";
-import { formatRequestedDate } from "@/lib/booking-rules";
+import type { AvailabilityResponse } from "@/lib/availability-types";
+import { formatRequestedDate, getBookingWindow } from "@/lib/booking-rules";
 
 type BookingRequestSectionProps = {
   company: BusinessConfig["company"];
@@ -101,6 +102,21 @@ export function BookingRequestSection({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [confirmation, setConfirmation] = useState<BookingConfirmation | null>(null);
+  const [availabilityState, setAvailabilityState] = useState<{
+    data: AvailabilityResponse;
+    completedVersion: number;
+    error: string;
+  }>({
+    data: { unavailableDates: [], unavailableTimes: {} },
+    completedVersion: -1,
+    error: "",
+  });
+  const [availabilityVersion, setAvailabilityVersion] = useState(0);
+  const availability = availabilityState.data;
+  const availabilityError = availabilityState.error;
+  const isLoadingAvailability =
+    Boolean(estimate) &&
+    availabilityState.completedVersion !== availabilityVersion;
 
   useEffect(() => {
     if (estimate) {
@@ -109,6 +125,44 @@ export function BookingRequestSection({
       setError("");
     }
   }, [estimate]);
+
+  useEffect(() => {
+    if (!estimate) return;
+
+    const controller = new AbortController();
+    const bookingWindow = getBookingWindow(settings);
+
+    fetch(
+      `/api/availability?from=${bookingWindow.minimumDate}&to=${bookingWindow.maximumDate}`,
+      { signal: controller.signal, cache: "no-store" },
+    )
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Availability request failed");
+        return (await response.json()) as AvailabilityResponse;
+      })
+      .then((result) => {
+        setAvailabilityState({
+          data: result,
+          completedVersion: availabilityVersion,
+          error: "",
+        });
+      })
+      .catch((requestError: unknown) => {
+        if (
+          requestError instanceof DOMException &&
+          requestError.name === "AbortError"
+        ) return;
+
+        setAvailabilityState((current) => ({
+          data: current.data,
+          completedVersion: availabilityVersion,
+          error:
+            "Live availability could not be loaded. Please try again before choosing a time.",
+        }));
+      });
+
+    return () => controller.abort();
+  }, [availabilityVersion, estimate, settings]);
 
   async function submitBooking(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -150,6 +204,11 @@ export function BookingRequestSection({
 
       if (!response.ok || !result.confirmation) {
         setError(result.error ?? "We couldn’t submit your request. Please try again.");
+        if (response.status === 409) {
+          setStep("schedule");
+          setRequestedTime("");
+          setAvailabilityVersion((version) => version + 1);
+        }
         return;
       }
 
@@ -196,8 +255,31 @@ export function BookingRequestSection({
                   <BookingCalendar
                     settings={settings}
                     selectedDate={requestedDate}
-                    onSelectDate={setRequestedDate}
+                    onSelectDate={(date) => {
+                      setRequestedDate(date);
+                      setRequestedTime("");
+                      setError("");
+                    }}
+                    unavailableDates={availability.unavailableDates}
+                    isLoadingAvailability={
+                      isLoadingAvailability || Boolean(availabilityError)
+                    }
                   />
+                  {isLoadingAvailability ? (
+                    <p className="mt-3 text-sm font-semibold text-blue-700">Checking live availability…</p>
+                  ) : null}
+                  {availabilityError ? (
+                    <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+                      <p className="font-semibold">{availabilityError}</p>
+                      <button
+                        type="button"
+                        onClick={() => setAvailabilityVersion((version) => version + 1)}
+                        className="mt-2 font-bold text-red-900 underline underline-offset-2"
+                      >
+                        Try again
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
 
                 <div className="space-y-6">
@@ -205,21 +287,42 @@ export function BookingRequestSection({
                     <h3 className="text-lg font-bold text-navy">Preferred start time</h3>
                     <p className="mt-1 text-sm leading-6 text-slate-500">Select a request window. Times are not guaranteed until confirmed.</p>
                     <div className="mt-5 grid grid-cols-2 gap-3">
-                      {settings.startTimes.map((time) => (
-                        <button
-                          key={time.value}
-                          type="button"
-                          onClick={() => setRequestedTime(time.value)}
-                          aria-pressed={requestedTime === time.value}
-                          className={`min-h-12 rounded-xl border px-3 text-sm font-bold transition ${requestedTime === time.value ? "border-blue-600 bg-blue-600 text-white" : "border-slate-200 bg-white text-navy hover:border-blue-300 hover:bg-blue-50"}`}
-                        >
-                          {time.label}
-                        </button>
-                      ))}
+                      {settings.startTimes.map((time) => {
+                        const unavailable =
+                          !requestedDate ||
+                          isLoadingAvailability ||
+                          Boolean(availabilityError) ||
+                          availability.unavailableTimes[requestedDate]?.includes(
+                            time.value,
+                          );
+
+                        return (
+                          <button
+                            key={time.value}
+                            type="button"
+                            disabled={unavailable}
+                            onClick={() => {
+                              setRequestedTime(time.value);
+                              setError("");
+                            }}
+                            aria-pressed={requestedTime === time.value}
+                            className={`min-h-12 rounded-xl border px-3 py-2 text-sm font-bold transition disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400 ${requestedTime === time.value ? "border-blue-600 bg-blue-600 text-white" : "border-slate-200 bg-white text-navy hover:border-blue-300 hover:bg-blue-50"}`}
+                          >
+                            <span className="block">{time.label}</span>
+                            {requestedDate &&
+                            unavailable &&
+                            !isLoadingAvailability &&
+                            !availabilityError ? (
+                              <span className="mt-0.5 block text-[0.65rem] font-semibold">Unavailable</span>
+                            ) : null}
+                          </button>
+                        );
+                      })}
                     </div>
                     <p className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">{settings.temporaryDefaultsNotice}</p>
                   </div>
                   <EstimateSummary compact />
+                  {error ? <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold leading-6 text-red-800">{error}</p> : null}
                   <button
                     type="button"
                     disabled={!requestedDate || !requestedTime}
@@ -257,12 +360,14 @@ export function BookingRequestSection({
                       <input name="customerEmail" type="email" autoComplete="email" required maxLength={254} className="booking-input" />
                     </label>
                     <label className="sm:col-span-2">
-                      <span className="mb-2 block text-sm font-bold text-navy">Pickup address <span className="text-blue-600">*</span></span>
-                      <input name="pickupAddress" autoComplete="street-address" required minLength={5} maxLength={300} className="booking-input" />
+                      <span className="mb-2 block text-sm font-bold text-navy">Where are you moving FROM? <span className="text-blue-600">*</span></span>
+                      <span className="mb-2 block text-xs leading-5 text-slate-500">Enter the full address where the moving crew should start.</span>
+                      <input name="pickupAddress" autoComplete="street-address" required minLength={5} maxLength={300} className="booking-input" placeholder="Street address, city, state, ZIP" />
                     </label>
                     <label className="sm:col-span-2">
-                      <span className="mb-2 block text-sm font-bold text-navy">Destination address <span className="text-blue-600">*</span></span>
-                      <input name="destinationAddress" required minLength={5} maxLength={300} className="booking-input" />
+                      <span className="mb-2 block text-sm font-bold text-navy">Where are you moving TO? <span className="text-blue-600">*</span></span>
+                      <span className="mb-2 block text-xs leading-5 text-slate-500">Enter the full address where the moving crew should finish.</span>
+                      <input name="destinationAddress" required minLength={5} maxLength={300} className="booking-input" placeholder="Street address, city, state, ZIP" />
                     </label>
                     <label className="sm:col-span-2">
                       <span className="mb-2 block text-sm font-bold text-navy">Notes or special instructions</span>

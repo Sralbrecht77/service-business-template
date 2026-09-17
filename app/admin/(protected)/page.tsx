@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { BookingFilters, type BookingFilter } from "@/components/admin/booking-filters";
 import { BookingsList } from "@/components/admin/bookings-list";
+import { AvailabilityManager } from "@/components/admin/availability-manager";
 import { addDays, getDateInTimeZone } from "@/lib/booking-rules";
 import { businessConfig } from "@/lib/business-config";
 import { isBookingStatus } from "@/lib/admin-bookings";
@@ -25,13 +26,22 @@ export default async function AdminDashboard({
   const rawStatus = Array.isArray(params.status) ? params.status[0] : params.status;
   const activeFilter: BookingFilter =
     rawStatus && isBookingStatus(rawStatus) ? rawStatus : "all";
-  const { data, error } = await context.supabase
-    .from("bookings")
-    .select("*")
-    .order("requested_date", { ascending: true })
-    .order("requested_time", { ascending: true });
+  const today = getDateInTimeZone(businessConfig.bookingSettings.timeZone);
+  const [bookingsResult, blocksResult] = await Promise.all([
+    context.supabase
+      .from("bookings")
+      .select("*")
+      .order("requested_date", { ascending: true })
+      .order("requested_time", { ascending: true }),
+    context.supabase
+      .from("schedule_blocks")
+      .select("*")
+      .gte("blocked_date", today)
+      .order("blocked_date", { ascending: true })
+      .order("blocked_time", { ascending: true, nullsFirst: true }),
+  ]);
 
-  if (error) {
+  if (bookingsResult.error) {
     return (
       <section className="mx-auto max-w-7xl px-5 py-12 sm:px-8 lg:px-10">
         <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-red-900">
@@ -42,8 +52,7 @@ export default async function AdminDashboard({
     );
   }
 
-  const bookings = data ?? [];
-  const today = getDateInTimeZone(businessConfig.bookingSettings.timeZone);
+  const bookings = bookingsResult.data ?? [];
   const nextSevenDays = addDays(today, 6);
   const summary = [
     {
@@ -99,6 +108,13 @@ export default async function AdminDashboard({
           </article>
         ))}
       </div>
+
+      <AvailabilityManager
+        blocks={blocksResult.data ?? []}
+        settings={businessConfig.bookingSettings}
+        today={today}
+        loadError={Boolean(blocksResult.error)}
+      />
 
       <div className="mt-10 flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
         <div>

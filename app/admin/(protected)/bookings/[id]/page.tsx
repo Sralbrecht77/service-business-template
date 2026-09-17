@@ -84,8 +84,8 @@ export default async function BookingDetailPage({ params }: BookingDetailPagePro
           </DetailCard>
 
           <DetailCard title="Move addresses">
-            <DetailRow label="Pickup address" value={booking.pickup_address} />
-            <DetailRow label="Destination address" value={booking.destination_address} />
+            <DetailRow label="Moving FROM" value={booking.pickup_address} />
+            <DetailRow label="Moving TO" value={booking.destination_address} />
           </DetailCard>
         </div>
 

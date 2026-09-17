@@ -57,6 +57,16 @@ export async function PATCH(request: Request, context: StatusRouteContext) {
     .maybeSingle();
 
   if (error) {
+    if (error.code === "23P01") {
+      return NextResponse.json(
+        {
+          error:
+            "This booking cannot be made active because its date or time is blocked.",
+        },
+        { status: 409 },
+      );
+    }
+
     console.error("Admin booking status update failed", {
       code: error.code,
       message: error.message,

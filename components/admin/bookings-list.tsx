@@ -36,8 +36,8 @@ export function BookingsList({ bookings }: { bookings: Booking[] }) {
             <h3 className="mt-5 text-lg font-bold text-navy">{booking.customer_name}</h3>
             <p className="mt-1 text-sm text-slate-600">{booking.customer_phone} · {booking.customer_email}</p>
             <div className="mt-4 space-y-2 border-t border-slate-100 pt-4 text-sm text-slate-600">
-              <p><span className="font-bold text-slate-800">From:</span> {booking.pickup_address}</p>
-              <p><span className="font-bold text-slate-800">To:</span> {booking.destination_address}</p>
+              <p><span className="font-extrabold uppercase tracking-wide text-blue-700">Moving FROM:</span> {booking.pickup_address}</p>
+              <p><span className="font-extrabold uppercase tracking-wide text-blue-700">Moving TO:</span> {booking.destination_address}</p>
             </div>
             <div className="mt-4 flex items-center justify-between gap-4 text-sm">
               <span className="font-semibold text-slate-500">{booking.crew_size} movers · {booking.estimated_hours} hrs</span>
@@ -73,9 +73,9 @@ export function BookingsList({ bookings }: { bookings: Booking[] }) {
                   <p>{booking.customer_phone}</p>
                   <p className="mt-1">{booking.customer_email}</p>
                 </td>
-                <td className="max-w-72 px-5 py-5 text-sm text-slate-600">
-                  <p className="line-clamp-1"><span className="font-bold text-slate-800">From:</span> {booking.pickup_address}</p>
-                  <p className="mt-1 line-clamp-1"><span className="font-bold text-slate-800">To:</span> {booking.destination_address}</p>
+                <td className="max-w-80 px-5 py-5 text-sm leading-6 text-slate-600">
+                  <p><span className="font-extrabold uppercase tracking-wide text-blue-700">FROM:</span> {booking.pickup_address}</p>
+                  <p className="mt-2"><span className="font-extrabold uppercase tracking-wide text-blue-700">TO:</span> {booking.destination_address}</p>
                 </td>
                 <td className="whitespace-nowrap px-5 py-5 text-sm text-slate-600">{booking.crew_size} movers<br />{booking.estimated_hours} hours</td>
                 <td className="whitespace-nowrap px-5 py-5 font-extrabold text-navy">{formatMoney(booking.estimated_base_total)}</td>

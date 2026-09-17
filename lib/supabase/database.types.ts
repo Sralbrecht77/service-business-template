@@ -84,6 +84,34 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["bookings"]["Insert"]>;
         Relationships: [];
       };
+      schedule_blocks: {
+        Row: {
+          id: string;
+          created_at: string;
+          created_by: string;
+          blocked_date: string;
+          blocked_time: string | null;
+          note: string | null;
+        };
+        Insert: {
+          id?: string;
+          created_at?: string;
+          created_by: string;
+          blocked_date: string;
+          blocked_time?: string | null;
+          note?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["schedule_blocks"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "schedule_blocks_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

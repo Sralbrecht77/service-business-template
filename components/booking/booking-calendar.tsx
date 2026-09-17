@@ -13,6 +13,8 @@ type BookingCalendarProps = {
   settings: BusinessConfig["bookingSettings"];
   selectedDate: string;
   onSelectDate: (date: string) => void;
+  unavailableDates: string[];
+  isLoadingAvailability: boolean;
 };
 
 const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -30,6 +32,8 @@ export function BookingCalendar({
   settings,
   selectedDate,
   onSelectDate,
+  unavailableDates,
+  isLoadingAvailability,
 }: BookingCalendarProps) {
   const [referenceNow, setReferenceNow] = useState<Date | null>(null);
   const [visibleMonth, setVisibleMonth] = useState("");
@@ -80,6 +84,10 @@ export function BookingCalendar({
         year: "numeric",
       }).format(new Date(`${visibleMonth}T00:00:00Z`))
     : "Loading calendar…";
+  const unavailableDateSet = useMemo(
+    () => new Set(unavailableDates),
+    [unavailableDates],
+  );
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
@@ -115,7 +123,9 @@ export function BookingCalendar({
           const bookable =
             item.inMonth &&
             referenceNow !== null &&
-            isBookableDate(item.date, settings, referenceNow);
+            !isLoadingAvailability &&
+            isBookableDate(item.date, settings, referenceNow) &&
+            !unavailableDateSet.has(item.date);
           const selected = item.date === selectedDate;
 
           return (
@@ -125,7 +135,7 @@ export function BookingCalendar({
                   type="button"
                   disabled={!bookable}
                   onClick={() => onSelectDate(item.date)}
-                  aria-label={formatRequestedDate(item.date)}
+                  aria-label={`${formatRequestedDate(item.date)}${unavailableDateSet.has(item.date) ? ", unavailable" : ""}`}
                   aria-pressed={selected}
                   className={`grid size-full max-h-11 max-w-11 place-items-center rounded-xl text-sm font-bold transition ${selected ? "bg-blue-600 text-white shadow-md shadow-blue-900/20" : bookable ? "text-navy hover:bg-blue-50 hover:text-blue-700" : "cursor-not-allowed text-slate-300 line-through"}`}
                 >
@@ -139,7 +149,7 @@ export function BookingCalendar({
 
       <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 border-t border-slate-100 pt-4 text-xs text-slate-500">
         <span className="flex items-center gap-2"><span className="size-2 rounded-full bg-blue-600" /> Selected date</span>
-        <span className="flex items-center gap-2"><span className="size-2 rounded-full bg-slate-300" /> Not bookable</span>
+        <span className="flex items-center gap-2"><span className="size-2 rounded-full bg-slate-300" /> Unavailable</span>
       </div>
     </div>
   );

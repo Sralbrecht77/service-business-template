@@ -134,11 +134,11 @@ export async function POST(request: Request) {
   });
 
   if (error) {
-    if (error.code === "23505") {
+    if (error.code === "23505" || error.code === "23P01") {
       return NextResponse.json(
         {
           error:
-            "That date and time already has an active request. Please choose another preferred time.",
+            "That date and time is no longer available. Please choose another preferred time.",
         },
         { status: 409 },
       );
