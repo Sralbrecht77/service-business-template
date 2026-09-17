@@ -55,6 +55,7 @@ export type Database = {
           has_excessive_stairs: boolean;
           has_long_carry: boolean;
           move_notes: string | null;
+          admin_notes: string | null;
         };
         Insert: {
           id?: string;
@@ -80,6 +81,7 @@ export type Database = {
           has_excessive_stairs?: boolean;
           has_long_carry?: boolean;
           move_notes?: string | null;
+          admin_notes?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["bookings"]["Insert"]>;
         Relationships: [];

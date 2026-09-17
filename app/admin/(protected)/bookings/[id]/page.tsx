@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { StatusBadge } from "@/components/admin/status-badge";
 import { StatusManager } from "@/components/admin/status-manager";
+import { InternalJobNotes } from "@/components/admin/internal-job-notes";
 import {
   formatAdminDate,
   formatAdminDateTime,
@@ -122,6 +123,11 @@ export default async function BookingDetailPage({ params }: BookingDetailPagePro
         <h2 className="text-lg font-bold text-navy">Move notes</h2>
         <p className="mt-4 whitespace-pre-wrap leading-7 text-slate-600">{booking.move_notes || "No additional notes were provided."}</p>
       </section>
+
+      <InternalJobNotes
+        bookingId={booking.id}
+        initialNotes={booking.admin_notes}
+      />
     </div>
   );
 }
