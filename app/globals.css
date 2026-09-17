@@ -2,25 +2,83 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #0c1e35;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-navy: #0c1e35;
+  --color-blue-50: #edf6ff;
+  --color-blue-100: #d9ecff;
+  --color-blue-200: #b9ddff;
+  --color-blue-300: #87c6ff;
+  --color-blue-400: #4aa6ff;
+  --color-blue-500: #1685f8;
+  --color-blue-600: #0769dc;
+  --color-blue-700: #0755b1;
+  --color-blue-800: #0b488f;
+  --color-blue-900: #0d3d76;
+  --font-sans: "Avenir Next", "Segoe UI", Arial, Helvetica, sans-serif;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Avenir Next", "Segoe UI", Arial, Helvetica, sans-serif;
+  overflow-x: hidden;
+}
+
+::selection {
+  background: #1685f8;
+  color: white;
+}
+
+@layer components {
+  .section {
+    @apply py-20 sm:py-24 lg:py-28;
+  }
+
+  .button {
+    @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-6 text-sm font-extrabold transition duration-200;
+  }
+
+  .button-primary {
+    @apply bg-blue-500 text-white shadow-lg shadow-blue-950/15 hover:-translate-y-0.5 hover:bg-blue-400;
+  }
+
+  .button-light {
+    @apply bg-white text-navy shadow-lg shadow-black/10 hover:-translate-y-0.5 hover:bg-blue-50;
+  }
+
+  .button-outline {
+    @apply border border-white/25 bg-white/5 text-white hover:border-white/50 hover:bg-white/10;
+  }
+
+  .booking-input {
+    @apply min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-base text-navy outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100;
+  }
+}
+
+.hero-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: 56px 56px;
+}
+
+.map-grid {
+  background-image:
+    linear-gradient(rgba(12, 30, 53, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(12, 30, 53, 0.06) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }
