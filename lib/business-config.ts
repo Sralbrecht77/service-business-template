@@ -154,7 +154,7 @@ const moversAndTruckPricing: CrewPricingConfig = {
     },
     { movers: 4, rate: 205, note: "Crew and moving truck included" },
   ],
-  customQuoteFromMovers: 5,
+  additionalMoverRate: 40,
   minimumHours: 2,
   billingNote: "Hourly rates include the selected moving crew and truck.",
   startingPriceNote:
@@ -162,22 +162,15 @@ const moversAndTruckPricing: CrewPricingConfig = {
 };
 
 const crewOnlyPricing: CrewPricingConfig = {
-  crews: [
-    { movers: 2, rate: 125, note: "Moving crew; customer provides transportation" },
-    {
-      movers: 3,
-      rate: 165,
-      note: "Moving crew; customer provides transportation",
-      featured: true,
-    },
-    { movers: 4, rate: 205, note: "Moving crew; customer provides transportation" },
-  ],
-  additionalMoverRate: 40,
-  minimumHours: 2,
+  ...moversAndTruckPricing,
+  crews: moversAndTruckPricing.crews.map((crew) => ({
+    ...crew,
+    note: "Moving crew; customer provides transportation",
+  })),
   billingNote:
     "Hourly rates include the selected moving crew. The customer provides transportation.",
   startingPriceNote:
-    "A 2-mover Crew Only job starts at $250 before any travel / mobilization and specialty charges.",
+    "A 2-mover Crew Only job starts at $250 before travel and specialty charges.",
 };
 
 const moversAndTruckTravelFees: TravelFeeConfig[] = [
@@ -188,13 +181,21 @@ const moversAndTruckTravelFees: TravelFeeConfig[] = [
   { minMiles: 76, maxMiles: null, mileage: "More than 75 miles", fee: null },
 ];
 
+const crewOnlyTravelFees: TravelFeeConfig[] = [
+  { minMiles: 0, maxMiles: 15, mileage: "0–15 miles", fee: 0 },
+  { minMiles: 16, maxMiles: 30, mileage: "16–30 miles", fee: 35 },
+  { minMiles: 31, maxMiles: 45, mileage: "31–45 miles", fee: 60 },
+  { minMiles: 46, maxMiles: 60, mileage: "46–60 miles", fee: 85 },
+  { minMiles: 61, maxMiles: null, mileage: "More than 60 miles", fee: null },
+];
+
 const serviceTypes: ServiceTypeConfig[] = [
   {
     id: "movers_and_truck",
     label: "Movers + Truck",
     description: "Guidestone provides the moving crew and truck.",
     enabled: true,
-    crewSizes: moversAndTruckPricing.crews.map((crew) => crew.movers),
+    crewSizes: [2, 3, 4, 5, 6, 7, 8],
     pricingMode: "hourly",
     pricing: moversAndTruckPricing,
     travelFees: moversAndTruckTravelFees,
@@ -210,9 +211,9 @@ const serviceTypes: ServiceTypeConfig[] = [
     crewSizes: [2, 3, 4, 5, 6, 7, 8],
     pricingMode: "hourly",
     pricing: crewOnlyPricing,
-    travelFees: null,
+    travelFees: crewOnlyTravelFees,
     customQuoteMessage:
-      "Crew Only hourly pricing is shown. Guidestone will confirm any travel / mobilization and specialty charges after reviewing your request.",
+      "Crew Only rates and travel fees are calculated separately from Movers + Truck pricing.",
   },
 ];
 

@@ -4,6 +4,7 @@ import type {
   Database,
 } from "@/lib/supabase/database.types";
 import { businessConfig } from "@/lib/business-config";
+import { formatCurrency } from "@/lib/currency";
 
 export type Booking = Database["public"]["Tables"]["bookings"]["Row"];
 
@@ -21,11 +22,7 @@ export function isBookingStatus(value: string): value is BookingStatus {
 export function formatMoney(value: number | null) {
   if (value === null) return "Custom quote required";
 
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(value);
+  return formatCurrency(value);
 }
 
 export function formatServiceType(value: BookingServiceType) {

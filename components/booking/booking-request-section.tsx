@@ -11,6 +11,7 @@ import type {
 } from "@/lib/booking-types";
 import type { AvailabilityResponse } from "@/lib/availability-types";
 import { formatRequestedDate, getBookingWindow } from "@/lib/booking-rules";
+import { formatCurrency } from "@/lib/currency";
 
 type BookingRequestSectionProps = {
   company: BusinessConfig["company"];
@@ -19,12 +20,6 @@ type BookingRequestSectionProps = {
 };
 
 type BookingStep = "schedule" | "details" | "confirmation";
-
-const currency = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-  maximumFractionDigits: 0,
-});
 
 function EstimateSummary({
   serviceTypes,
@@ -41,6 +36,10 @@ function EstimateSummary({
   );
   const serviceLabel = serviceType?.label ?? estimate.serviceType;
   const servicePricingNeedsQuote = estimate.hourlyRate === null;
+  const travelFeeLabel =
+    serviceType?.id === "crew_only"
+      ? "Crew Only travel fee"
+      : "Travel / mobilization";
 
   const selectedDetails = [
     estimate.hasPiano && "Piano",
@@ -57,14 +56,14 @@ function EstimateSummary({
           <p className="text-xs font-bold uppercase tracking-[0.17em] text-blue-300">Estimate summary</p>
           <p className="mt-1 font-bold">{serviceLabel} · {estimate.crewSize} movers · {estimate.estimatedHours} hours</p>
         </div>
-        <Icon name="truck" className="size-6 text-blue-300" />
+        <Icon name={serviceType?.id === "crew_only" ? "users" : "truck"} className="size-6 text-blue-300" />
       </div>
       <dl className="mt-5 space-y-3 text-sm">
         <div className="flex justify-between gap-4"><dt className="text-slate-400">Service type</dt><dd className="font-bold">{serviceLabel}</dd></div>
-        <div className="flex justify-between gap-4"><dt className="text-slate-400">Hourly rate</dt><dd className={servicePricingNeedsQuote ? "text-right font-bold text-amber-300" : "font-bold"}>{estimate.hourlyRate === null ? "Custom quote required" : `${currency.format(estimate.hourlyRate)}/hr`}</dd></div>
-        <div className="flex justify-between gap-4"><dt className="text-slate-400">Estimated labor cost</dt><dd className={servicePricingNeedsQuote ? "text-right font-bold text-amber-300" : "font-bold"}>{estimate.estimatedLaborCost === null ? "Custom quote required" : currency.format(estimate.estimatedLaborCost)}</dd></div>
+        <div className="flex justify-between gap-4"><dt className="text-slate-400">Hourly rate</dt><dd className={servicePricingNeedsQuote ? "text-right font-bold text-amber-300" : "font-bold"}>{estimate.hourlyRate === null ? "Custom quote required" : `${formatCurrency(estimate.hourlyRate)}/hr`}</dd></div>
+        <div className="flex justify-between gap-4"><dt className="text-slate-400">Estimated labor cost</dt><dd className={servicePricingNeedsQuote ? "text-right font-bold text-amber-300" : "font-bold"}>{estimate.estimatedLaborCost === null ? "Custom quote required" : formatCurrency(estimate.estimatedLaborCost)}</dd></div>
         <div className="flex justify-between gap-4"><dt className="text-slate-400">Round-trip miles</dt><dd className="font-bold">{estimate.roundTripMiles}</dd></div>
-        <div className="flex justify-between gap-4"><dt className="text-slate-400">Travel / mobilization</dt><dd className={estimate.travelFee === null ? "font-bold text-amber-300" : "font-bold"}>{estimate.travelFee === null ? "Custom quote" : currency.format(estimate.travelFee)}</dd></div>
+        <div className="flex justify-between gap-4"><dt className="text-slate-400">{travelFeeLabel}</dt><dd className={estimate.travelFee === null ? "font-bold text-amber-300" : "font-bold"}>{estimate.travelFee === null ? "Custom quote" : formatCurrency(estimate.travelFee)}</dd></div>
       </dl>
       <div className="mt-5 flex items-end justify-between gap-4 border-t border-white/15 pt-5">
         <span className="text-sm font-bold">Estimated base total</span>
@@ -72,8 +71,8 @@ function EstimateSummary({
           {estimate.estimatedBaseTotal === null
             ? estimate.estimatedLaborCost === null
               ? "Custom quote required"
-              : `${currency.format(estimate.estimatedLaborCost)} + custom travel quote`
-            : currency.format(estimate.estimatedBaseTotal)}
+              : `${formatCurrency(estimate.estimatedLaborCost)} + custom travel quote`
+            : formatCurrency(estimate.estimatedBaseTotal)}
         </span>
       </div>
       {servicePricingNeedsQuote && serviceType ? (
@@ -250,6 +249,10 @@ export function BookingRequestSection({
   const confirmationServiceType = confirmation
     ? serviceTypes.find((option) => option.id === confirmation.serviceType)
     : null;
+  const confirmationTravelFeeLabel =
+    confirmationServiceType?.id === "crew_only"
+      ? "Crew Only travel fee"
+      : "Travel / mobilization fee";
 
   return (
     <section id="booking" className="section scroll-mt-6 bg-white">
@@ -434,10 +437,10 @@ export function BookingRequestSection({
                     ["Preferred time", settings.startTimes.find((time) => time.value === confirmation.requestedTime)?.label ?? confirmation.requestedTime],
                     ["Service type", confirmationServiceType?.label ?? confirmation.serviceType],
                     ["Requested crew", `${confirmation.crewSize} movers`],
-                    ["Hourly rate", confirmation.hourlyRate === null ? "Custom quote required" : `${currency.format(confirmation.hourlyRate)}/hour`],
-                    ["Estimated labor cost", confirmation.estimatedLaborCost === null ? "Custom quote required" : currency.format(confirmation.estimatedLaborCost)],
-                    ["Travel / mobilization fee", confirmation.travelFee === null ? "Custom quote required" : currency.format(confirmation.travelFee)],
-                    ["Estimated base total", confirmation.estimatedBaseTotal === null ? confirmation.estimatedLaborCost === null ? "Custom quote required" : `${currency.format(confirmation.estimatedLaborCost)} + custom travel quote` : currency.format(confirmation.estimatedBaseTotal)],
+                    ["Hourly rate", confirmation.hourlyRate === null ? "Custom quote required" : `${formatCurrency(confirmation.hourlyRate)}/hour`],
+                    ["Estimated labor cost", confirmation.estimatedLaborCost === null ? "Custom quote required" : formatCurrency(confirmation.estimatedLaborCost)],
+                    [confirmationTravelFeeLabel, confirmation.travelFee === null ? "Custom quote required" : formatCurrency(confirmation.travelFee)],
+                    ["Estimated base total", confirmation.estimatedBaseTotal === null ? confirmation.estimatedLaborCost === null ? "Custom quote required" : `${formatCurrency(confirmation.estimatedLaborCost)} + custom travel quote` : formatCurrency(confirmation.estimatedBaseTotal)],
                   ].map(([label, value]) => (
                     <div key={label} className="bg-white p-6">
                       <dt className="text-xs font-bold uppercase tracking-wider text-slate-400">{label}</dt>

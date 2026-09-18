@@ -197,7 +197,12 @@ function Pricing({ config }: HomepageProps) {
         </div>
         <div className="mt-6 flex flex-col justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-6 py-5 text-sm sm:flex-row sm:items-center">
           <p className="flex items-center gap-3 font-bold text-navy"><Icon name="clock" className="size-5 text-blue-600" /> {config.pricing.minimumHours}-hour minimum on all jobs</p>
-          <p className="text-slate-500">Crews of {config.pricing.customQuoteFromMovers} or more require a custom quote. Final cost also depends on travel and specialty items.</p>
+          <p className="text-slate-500">
+            {config.pricing.additionalMoverRate !== undefined
+              ? `Each additional mover beyond ${Math.max(...config.pricing.crews.map((crew) => crew.movers))} adds $${config.pricing.additionalMoverRate}/hour. `
+              : `Crews of ${config.pricing.customQuoteFromMovers} or more require a custom quote. `}
+            Final cost also depends on travel and specialty items.
+          </p>
         </div>
       </Container>
     </section>

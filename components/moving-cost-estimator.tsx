@@ -7,6 +7,7 @@ import type {
   BusinessConfig,
   ServiceTypeId,
 } from "@/lib/business-config";
+import { formatCurrency } from "@/lib/currency";
 import { calculateEstimate } from "@/lib/pricing";
 
 type MovingCostEstimatorProps = {
@@ -14,12 +15,6 @@ type MovingCostEstimatorProps = {
   defaultServiceTypeId: BusinessConfig["defaultServiceTypeId"];
   estimator: BusinessConfig["estimator"];
 };
-
-const currency = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-  maximumFractionDigits: 0,
-});
 
 export function MovingCostEstimator({
   serviceTypes,
@@ -66,6 +61,10 @@ export function MovingCostEstimator({
   );
   const travelNeedsQuote = estimate.travelFee === null;
   const servicePricingNeedsQuote = estimate.hourlyRate === null;
+  const travelFeeLabel =
+    activeServiceType.id === "crew_only"
+      ? "Crew Only travel fee"
+      : "Travel / mobilization fee";
   const largestConfiguredCrew = activeServiceType.pricing
     ? Math.max(...activeServiceType.pricing.crews.map((crew) => crew.movers))
     : null;
@@ -98,6 +97,18 @@ export function MovingCostEstimator({
     const nextMinimumHours =
       nextServiceType.pricing?.minimumHours ?? estimator.hourStep;
     if (hours < nextMinimumHours) setHours(nextMinimumHours);
+  }
+
+  function adjustHours(direction: -1 | 1) {
+    setHours((current) => {
+      const nextHours = current + direction * estimator.hourStep;
+      const clampedHours = Math.min(
+        estimator.maxHours,
+        Math.max(minimumHours, nextHours),
+      );
+
+      return Number(clampedHours.toFixed(2));
+    });
   }
 
   return (
@@ -172,41 +183,68 @@ export function MovingCostEstimator({
                 <span className="mt-2 block text-xs text-slate-500">
                   {activeServiceType.pricing?.additionalMoverRate !== undefined &&
                   largestConfiguredCrew !== null
-                    ? `Each mover beyond ${largestConfiguredCrew} adds ${currency.format(activeServiceType.pricing.additionalMoverRate)}/hour.`
+                    ? `Each mover beyond ${largestConfiguredCrew} adds ${formatCurrency(activeServiceType.pricing.additionalMoverRate)}/hour.`
                     : activeServiceType.pricing?.customQuoteFromMovers !== undefined
                       ? `Crews of ${activeServiceType.pricing.customQuoteFromMovers} or more require a custom quote.`
                       : "Crew size helps Guidestone prepare your custom quote."}
                 </span>
               </label>
 
-              <label className="block">
-                <span className="mb-2.5 block text-sm font-bold text-navy">Estimated hours</span>
-                <div className="relative">
-                  <input
-                    type="number"
-                    min={minimumHours}
-                    max={estimator.maxHours}
-                    step={estimator.hourStep}
-                    value={hours}
-                    onChange={(event) => {
-                      const value = Number(event.target.value);
-                      setHours(
-                        Math.min(
-                          estimator.maxHours,
-                          Math.max(minimumHours, value || minimumHours),
-                        ),
-                      );
-                    }}
-                    className="min-h-13 w-full rounded-xl border border-slate-300 bg-white px-4 pr-16 text-base font-semibold text-navy outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                  />
-                  <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-400">hours</span>
+              <div className="block">
+                <label
+                  htmlFor="estimated-hours"
+                  className="mb-2.5 block text-sm font-bold text-navy"
+                >
+                  Estimated hours
+                </label>
+                <div className="grid min-h-13 grid-cols-[3.25rem_minmax(0,1fr)_3.25rem] overflow-hidden rounded-xl border border-slate-300 bg-white transition focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-100">
+                  <button
+                    type="button"
+                    aria-label="Decrease estimated hours"
+                    disabled={hours <= minimumHours}
+                    onClick={() => adjustHours(-1)}
+                    className="grid min-h-13 place-items-center border-r border-slate-200 bg-slate-50 text-2xl font-bold text-blue-700 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:text-slate-300"
+                  >
+                    <span aria-hidden="true">−</span>
+                  </button>
+                  <div className="flex min-w-0 items-center justify-center gap-1.5 px-2">
+                    <input
+                      id="estimated-hours"
+                      type="number"
+                      min={minimumHours}
+                      max={estimator.maxHours}
+                      step={estimator.hourStep}
+                      value={hours}
+                      onChange={(event) => {
+                        const value = Number(event.target.value);
+                        setHours(
+                          Math.min(
+                            estimator.maxHours,
+                            Math.max(minimumHours, value || minimumHours),
+                          ),
+                        );
+                      }}
+                      aria-label="Estimated hours"
+                      className="min-w-0 max-w-20 bg-transparent text-center text-base font-semibold text-navy outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                    />
+                    <span className="text-sm font-semibold text-slate-400">hours</span>
+                  </div>
+                  <button
+                    type="button"
+                    aria-label="Increase estimated hours"
+                    disabled={hours >= estimator.maxHours}
+                    onClick={() => adjustHours(1)}
+                    className="grid min-h-13 place-items-center border-l border-slate-200 bg-slate-50 text-2xl font-bold text-blue-700 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:text-slate-300"
+                  >
+                    <span aria-hidden="true">+</span>
+                  </button>
                 </div>
                 <span className="mt-2 block text-xs text-slate-500">
                   {activeServiceType.pricing
                     ? `${minimumHours}-hour minimum`
                     : "Share the amount of help you expect; final pricing will be confirmed."}
                 </span>
-              </label>
+              </div>
             </div>
 
             <label className="mt-6 block">
@@ -305,7 +343,7 @@ export function MovingCostEstimator({
                   <dd className={servicePricingNeedsQuote ? "font-bold text-amber-300" : "font-bold"}>
                     {estimate.hourlyRate === null
                       ? "Custom quote required"
-                      : `${currency.format(estimate.hourlyRate)}/hour`}
+                      : `${formatCurrency(estimate.hourlyRate)}/hour`}
                   </dd>
                 </div>
                 <div className="flex items-center justify-between gap-4">
@@ -317,16 +355,16 @@ export function MovingCostEstimator({
                   <dd className={servicePricingNeedsQuote ? "font-bold text-amber-300" : "font-bold"}>
                     {estimate.estimatedLaborCost === null
                       ? "Custom quote required"
-                      : currency.format(estimate.estimatedLaborCost)}
+                      : formatCurrency(estimate.estimatedLaborCost)}
                   </dd>
                 </div>
                 <div className="flex items-start justify-between gap-4">
-                  <dt className="text-slate-400">Travel / mobilization fee</dt>
+                  <dt className="text-slate-400">{travelFeeLabel}</dt>
                   <dd className={`max-w-52 text-right font-bold ${travelNeedsQuote ? "text-amber-300" : ""}`}>
                     {estimate.travelFee !== null
                       ? estimate.travelFee === 0
                         ? "$0"
-                        : currency.format(estimate.travelFee)
+                        : formatCurrency(estimate.travelFee)
                       : "Custom quote required"}
                   </dd>
                 </div>
@@ -339,8 +377,8 @@ export function MovingCostEstimator({
                     {estimate.estimatedLaborCost === null
                       ? "Custom quote required"
                       : estimate.estimatedBaseTotal !== null
-                        ? currency.format(estimate.estimatedBaseTotal)
-                        : `${currency.format(estimate.estimatedLaborCost)} + custom travel quote`}
+                        ? formatCurrency(estimate.estimatedBaseTotal)
+                        : `${formatCurrency(estimate.estimatedLaborCost)} + custom travel quote`}
                   </p>
                 </div>
               </div>
