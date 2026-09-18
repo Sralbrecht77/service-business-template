@@ -1,4 +1,5 @@
-import { ArrowIcon, Icon, LogoMark } from "@/components/icons";
+import Image from "next/image";
+import { ArrowIcon, Icon } from "@/components/icons";
 import { BookingFlowProvider } from "@/components/booking/booking-flow-provider";
 import { BookingRequestSection } from "@/components/booking/booking-request-section";
 import { MovingCostEstimator } from "@/components/moving-cost-estimator";
@@ -51,12 +52,16 @@ function Header({ config }: HomepageProps) {
   return (
     <header className="absolute inset-x-0 top-0 z-30 border-b border-white/15">
       <Container className="flex h-20 items-center justify-between gap-4">
-        <a href="#top" className="flex items-center gap-3 text-white" aria-label={`${config.company.name} home`}>
-          <LogoMark className="size-10 text-blue-500" />
-          <span className="leading-none">
-            <span className="block text-base font-extrabold tracking-[-0.02em] sm:text-lg">{config.company.shortName}</span>
-            <span className="mt-1 block text-[0.62rem] font-semibold uppercase tracking-[0.24em] text-slate-300">Moving Co.</span>
-          </span>
+        <a href="#top" className="flex items-center text-white" aria-label={`${config.company.name} home`}>
+          <Image
+            src={config.assets.logoPath}
+            alt={`${config.company.name} logo`}
+            width={1536}
+            height={1024}
+            preload
+            className="h-16 w-24 object-cover object-center sm:h-[4.5rem] sm:w-28"
+            sizes="(max-width: 640px) 96px, 112px"
+          />
         </a>
         <nav aria-label="Primary navigation" className="hidden items-center gap-7 lg:flex">
           {navItems.map((item) => (
@@ -102,7 +107,7 @@ function Hero({ config }: HomepageProps) {
             </a>
           </div>
           <div className="mt-10 flex flex-wrap gap-x-7 gap-y-3 border-t border-white/15 pt-6 text-sm font-semibold text-slate-300">
-            {["Clear crew rates", "Labor-only specialists", `${config.pricing.minimumHours}-hour minimum`].map((item) => (
+            {["Truck included", "Crew included", `${config.pricing.minimumHours}-hour minimum`].map((item) => (
               <span key={item} className="flex items-center gap-2">
                 <span className="grid size-5 place-items-center rounded-full bg-blue-500/20 text-blue-300"><Icon name="check" className="size-3" /></span>
                 {item}
@@ -111,41 +116,23 @@ function Hero({ config }: HomepageProps) {
           </div>
         </div>
 
-        <div className="relative mx-auto w-full max-w-lg lg:mx-0 lg:ml-auto">
+        <div className="relative mx-auto w-full max-w-xl lg:mx-0 lg:ml-auto">
           <div className="absolute -inset-4 rotate-3 rounded-[2rem] bg-blue-500/20" />
-          <div className="relative overflow-hidden rounded-[1.75rem] bg-white text-navy shadow-2xl shadow-black/25">
-            <div className="flex items-center justify-between bg-blue-600 px-7 py-5 text-white">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-100">Move day support</p>
-                <p className="mt-1 text-xl font-bold">Heavy work, handled.</p>
-              </div>
-              <div className="grid size-12 place-items-center rounded-2xl bg-white/15"><Icon name="truck" /></div>
-            </div>
-            <div className="p-7 sm:p-8">
-              <div className="space-y-6">
-                {[
-                  ["01", "You provide the truck", "Rent the vehicle or container that fits your move."],
-                  ["02", "We provide the crew", "Choose two, three, four, or more movers."],
-                  ["03", "We get to work", "Loading, unloading, and lifting—done with care."],
-                ].map(([number, title, body], index) => (
-                  <div key={number} className="relative flex gap-4">
-                    {index < 2 ? <span className="absolute left-5 top-11 h-10 w-px bg-slate-200" /> : null}
-                    <span className="relative grid size-10 shrink-0 place-items-center rounded-full bg-blue-50 text-xs font-extrabold text-blue-600">{number}</span>
-                    <div>
-                      <h2 className="font-bold">{title}</h2>
-                      <p className="mt-1 text-sm leading-6 text-slate-500">{body}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-8 rounded-2xl bg-slate-100 p-5">
-                <div className="flex items-end justify-between gap-4">
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Crews from</p>
-                    <p className="mt-1 text-3xl font-extrabold text-navy">${config.pricing.crews[0].rate}<span className="text-base font-semibold text-slate-500">/hour</span></p>
-                  </div>
-                  <p className="text-right text-xs font-semibold leading-5 text-slate-500">Entire crew<br />not per mover</p>
-                </div>
+          <div className="relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-slate-950 shadow-2xl shadow-black/25">
+            <Image
+              src={config.assets.truckImagePath}
+              alt={`${config.company.name} moving truck`}
+              width={1536}
+              height={1024}
+              preload
+              className="aspect-[4/3] h-auto w-full object-cover object-center sm:aspect-[3/2] lg:aspect-[4/3]"
+              sizes="(max-width: 1024px) 90vw, 42vw"
+            />
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950 via-slate-950/90 to-transparent px-6 pb-6 pt-20 sm:px-8 sm:pb-8">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-300">Crew + truck included</p>
+              <div className="mt-2 flex items-end justify-between gap-4">
+                <p className="text-xl font-bold text-white sm:text-2xl">Moving service from ${config.pricing.crews[0].rate}/hour</p>
+                <Icon name="truck" className="size-8 shrink-0 text-blue-300" />
               </div>
             </div>
           </div>
@@ -165,8 +152,8 @@ function Services({ config }: HomepageProps) {
     <section id="services" className="section bg-white">
       <Container>
         <div className="flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
-          <SectionHeading eyebrow="What we do" title="Strong hands for every part of the move." description="Bring the truck or container. We’ll bring the experienced labor to get your belongings where they need to go." />
-          <p className="max-w-sm border-l-2 border-blue-500 pl-5 text-sm font-medium leading-6 text-slate-500">Flexible help for full moves, single-item jobs, and everything in between.</p>
+          <SectionHeading eyebrow="What we do" title="Professional help for every part of the move." description="Guidestone brings the truck and moving crew to help get your belongings where they need to go." />
+          <p className="max-w-sm border-l-2 border-blue-500 pl-5 text-sm font-medium leading-6 text-slate-500">Moving support for local and regional jobs, with custom arrangements available when needed.</p>
         </div>
         <div className="mt-14 grid gap-px overflow-hidden rounded-3xl border border-slate-200 bg-slate-200 sm:grid-cols-2 lg:grid-cols-3">
           {config.services.map((service) => (
@@ -189,9 +176,9 @@ function Pricing({ config }: HomepageProps) {
     <section id="pricing" className="section bg-slate-50">
       <Container>
         <div className="flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
-          <SectionHeading eyebrow="Crew pricing" title="Pick the crew that fits the job." description={config.pricing.billingNote} />
-          <div className="rounded-2xl border border-blue-200 bg-blue-50 px-5 py-4 text-sm font-semibold text-blue-900">
-            <span className="text-blue-600">+</span> ${config.pricing.additionalMoverRate}/hour for each additional mover
+          <SectionHeading eyebrow="Crew + truck pricing" title="Pick the crew that fits the job." description={config.pricing.billingNote} />
+          <div className="max-w-md rounded-2xl border border-blue-200 bg-blue-50 px-5 py-4 text-sm font-semibold leading-6 text-blue-900">
+            {config.pricing.startingPriceNote}
           </div>
         </div>
         <div className="mt-12 grid gap-5 lg:grid-cols-3">
@@ -202,7 +189,7 @@ function Pricing({ config }: HomepageProps) {
                 <Icon name="users" className={`size-8 ${crew.featured ? "text-blue-300" : "text-blue-600"}`} />
                 <span className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Per hour</span>
               </div>
-              <h3 className="mt-8 text-2xl font-bold">{crew.movers} movers</h3>
+              <h3 className="mt-8 text-2xl font-bold">{crew.movers} movers + truck</h3>
               <p className="mt-2 text-sm text-slate-400">{crew.note}</p>
               <p className="mt-auto pt-8 text-5xl font-extrabold tracking-[-0.045em]">${crew.rate}<span className={`ml-1 text-base font-semibold ${crew.featured ? "text-slate-400" : "text-slate-500"}`}>/hr</span></p>
             </article>
@@ -210,7 +197,7 @@ function Pricing({ config }: HomepageProps) {
         </div>
         <div className="mt-6 flex flex-col justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-6 py-5 text-sm sm:flex-row sm:items-center">
           <p className="flex items-center gap-3 font-bold text-navy"><Icon name="clock" className="size-5 text-blue-600" /> {config.pricing.minimumHours}-hour minimum on all jobs</p>
-          <p className="text-slate-500">Final cost depends on crew size, time, travel, and specialty items.</p>
+          <p className="text-slate-500">Crews of {config.pricing.customQuoteFromMovers} or more require a custom quote. Final cost also depends on travel and specialty items.</p>
         </div>
       </Container>
     </section>
@@ -222,7 +209,7 @@ function TravelFees({ config }: HomepageProps) {
     <section className="section bg-white">
       <Container className="grid gap-12 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
         <div>
-          <SectionHeading eyebrow="Travel fees" title="Simple mileage. No guesswork." description="Travel is calculated using round-trip mileage, so you can see the applicable fee at a glance." />
+          <SectionHeading eyebrow="Travel / mobilization fees" title="Simple mileage. No guesswork." description="Travel / mobilization is calculated using round-trip mileage, so you can see the applicable fee at a glance." />
           <div className="mt-8 rounded-2xl border border-amber-200 bg-amber-50 p-5">
             <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-amber-700">Quote required</p>
             <p className="mt-2 text-sm leading-6 text-amber-950">{config.specialItems.join(", ")}, and other unusually large or heavy items require a custom quote.</p>
@@ -230,12 +217,12 @@ function TravelFees({ config }: HomepageProps) {
         </div>
         <div className="overflow-hidden rounded-3xl border border-slate-200 bg-slate-50">
           <div className="grid grid-cols-2 border-b border-slate-200 bg-navy px-6 py-4 text-xs font-bold uppercase tracking-[0.16em] text-slate-300 sm:px-8">
-            <span>Round-trip mileage</span><span className="text-right">Travel fee</span>
+            <span>Round-trip mileage</span><span className="text-right">Travel / mobilization</span>
           </div>
           {config.travelFees.map((tier, index) => (
             <div key={tier.mileage} className={`grid grid-cols-2 items-center px-6 py-5 sm:px-8 ${index < config.travelFees.length - 1 ? "border-b border-slate-200" : ""}`}>
               <span className="font-semibold text-slate-700">{tier.mileage}</span>
-              <span className="text-right text-xl font-extrabold text-navy">{tier.fee === 0 ? "Free" : `$${tier.fee}`}</span>
+              <span className="text-right text-xl font-extrabold text-navy">{tier.fee === null ? "Custom quote" : `$${tier.fee}`}</span>
             </div>
           ))}
         </div>
@@ -249,7 +236,7 @@ function WhyChooseUs({ config }: HomepageProps) {
     <section id="why-us" className="section relative overflow-hidden bg-navy text-white">
       <div className="absolute left-0 top-0 h-full w-1/3 bg-blue-600/5" />
       <Container className="relative">
-        <SectionHeading eyebrow={`Why ${config.company.shortName}`} title="Moving help you can feel good about." description="A clear, focused service built around dependable labor and a smoother move day." inverse />
+        <SectionHeading eyebrow={`Why ${config.company.shortName}`} title="Moving help you can feel good about." description="A clear, focused service that brings the truck and crew together for a smoother move day." inverse />
         <div className="mt-14 grid gap-x-10 gap-y-12 sm:grid-cols-2 lg:grid-cols-4">
           {config.whyChooseUs.map((item, index) => (
             <article key={item.title}>
@@ -285,18 +272,18 @@ function ServiceArea({ config }: HomepageProps) {
   return (
     <section id="service-area" className="section bg-white">
       <Container className="grid items-center gap-14 lg:grid-cols-2">
-        <div className="relative min-h-96 overflow-hidden rounded-[2rem] bg-slate-100 p-8 sm:p-10">
-          <div className="map-grid absolute inset-0 opacity-60" />
-          <div className="absolute left-[18%] top-[34%] h-1 w-[64%] -rotate-12 rounded-full bg-blue-300/70" />
-          <div className="absolute left-[38%] top-[22%] h-[58%] w-1 rotate-[28deg] rounded-full bg-blue-300/70" />
-          <div className="absolute left-1/2 top-1/2 size-44 -translate-x-1/2 -translate-y-1/2 rounded-full border border-blue-400/30 bg-blue-400/10" />
-          <div className="absolute left-1/2 top-1/2 size-28 -translate-x-1/2 -translate-y-1/2 rounded-full border border-blue-500/40 bg-blue-500/10" />
-          <div className="absolute left-1/2 top-1/2 grid size-16 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-blue-600 text-white shadow-xl shadow-blue-900/20">
+        <div className="relative min-h-[28rem] overflow-hidden rounded-[2rem] bg-navy p-6 text-white sm:p-10">
+          <div className="map-grid map-grid-inverse absolute inset-0 opacity-50" />
+          <div className="absolute left-1/2 top-[46%] size-[22rem] max-h-[80vw] max-w-[80vw] -translate-x-1/2 -translate-y-1/2 rounded-full border border-blue-300/20 bg-blue-500/5" />
+          <div className="absolute left-1/2 top-[46%] size-64 max-h-[60vw] max-w-[60vw] -translate-x-1/2 -translate-y-1/2 rounded-full border border-dashed border-blue-300/40 bg-blue-500/10" />
+          <div className="absolute left-1/2 top-[46%] size-36 -translate-x-1/2 -translate-y-1/2 rounded-full border border-blue-300/40 bg-blue-500/15" />
+          <div className="absolute left-1/2 top-[46%] grid size-16 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-blue-500 text-white shadow-xl shadow-black/25">
             <Icon name="pin" className="size-7" />
           </div>
-          <div className="absolute bottom-6 left-6 right-6 rounded-2xl border border-white/80 bg-white/90 p-4 shadow-lg backdrop-blur sm:left-8 sm:right-auto">
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-600">Mileage-based travel</p>
-            <p className="mt-1 text-sm font-semibold text-navy">Round-trip fees from $0</p>
+          <div className="absolute inset-x-5 bottom-5 rounded-2xl border border-white/15 bg-slate-950/80 p-5 text-center shadow-lg backdrop-blur sm:inset-x-8 sm:bottom-8">
+            <p className="text-base font-extrabold uppercase tracking-[0.12em] text-white">{config.serviceArea.visualLocation}</p>
+            <p className="mt-1 text-xs font-bold uppercase tracking-[0.18em] text-blue-300">{config.serviceArea.visualLabel}</p>
+            <p className="mt-2 text-sm font-semibold text-slate-300">{config.serviceArea.visualRadius}</p>
           </div>
         </div>
         <div>
@@ -305,6 +292,46 @@ function ServiceArea({ config }: HomepageProps) {
             <Icon name="pin" className="mt-0.5 size-5 shrink-0 text-blue-600" />
             <p className="text-sm font-semibold leading-6 text-slate-600">{config.serviceArea.status}</p>
           </div>
+        </div>
+      </Container>
+    </section>
+  );
+}
+
+function Testimonials({ config }: HomepageProps) {
+  if (config.testimonials.length === 0) return null;
+
+  return (
+    <section id="testimonials" className="section bg-slate-50">
+      <Container>
+        <SectionHeading
+          eyebrow="Customer feedback"
+          title="What customers are saying."
+        />
+        <div className="mt-12 grid gap-5 lg:grid-cols-3">
+          {config.testimonials.map((testimonial) => (
+            <figure key={`${testimonial.name}-${testimonial.quote}`} className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm sm:p-8">
+              {testimonial.isPlaceholder || testimonial.rating ? (
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  {testimonial.isPlaceholder ? (
+                    <span className="rounded-full bg-amber-100 px-3 py-1 text-[0.68rem] font-extrabold uppercase tracking-[0.12em] text-amber-800">
+                      Sample testimonial
+                    </span>
+                  ) : null}
+                  {testimonial.rating ? (
+                    <p className="text-sm tracking-[0.16em] text-blue-600" aria-label={`${testimonial.rating} out of 5 stars`}>
+                      {"★".repeat(Math.round(Math.min(5, Math.max(1, testimonial.rating))))}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+              <blockquote className="mt-5 text-lg leading-8 text-slate-700">“{testimonial.quote}”</blockquote>
+              <figcaption className="mt-6 border-t border-slate-100 pt-5">
+                <p className="font-bold text-navy">{testimonial.name}</p>
+                {testimonial.source ? <p className="mt-1 text-sm text-slate-500">{testimonial.source}</p> : null}
+              </figcaption>
+            </figure>
+          ))}
         </div>
       </Container>
     </section>
@@ -331,11 +358,11 @@ function Contact({ config }: HomepageProps) {
               <dl className="mt-7 space-y-6">
                 <div className="border-b border-white/10 pb-6">
                   <dt className="text-xs font-semibold text-slate-400">Phone</dt>
-                  <dd className="mt-2 font-bold">{config.contact.phoneLabel}</dd>
+                  <dd className="mt-2 font-bold"><a href={config.contact.phoneHref} className="transition hover:text-blue-300">{config.contact.phoneLabel}</a></dd>
                 </div>
                 <div className="border-b border-white/10 pb-6">
                   <dt className="text-xs font-semibold text-slate-400">Email</dt>
-                  <dd className="mt-2 font-bold">{config.contact.emailLabel}</dd>
+                  <dd className="mt-2 break-all font-bold"><a href={config.contact.emailHref} className="transition hover:text-blue-300">{config.contact.emailLabel}</a></dd>
                 </div>
                 <div>
                   <dt className="text-xs font-semibold text-slate-400">Availability</dt>
@@ -355,9 +382,9 @@ function Footer({ config }: HomepageProps) {
     <footer className="border-t border-white/10 bg-navy py-10 text-white">
       <Container>
         <div className="flex flex-col justify-between gap-8 sm:flex-row sm:items-center">
-          <div className="flex items-center gap-3">
-            <LogoMark className="size-9 text-blue-500" />
-            <div><p className="font-bold">{config.company.name}</p><p className="mt-1 text-xs text-slate-400">{config.company.description}</p></div>
+          <div className="flex items-center gap-4">
+            <Image src={config.assets.logoPath} alt={`${config.company.name} logo`} width={1536} height={1024} className="h-16 w-24 object-cover object-center" sizes="96px" />
+            <div><p className="font-bold">{config.company.name}</p><p className="mt-1 max-w-sm text-xs text-slate-400">{config.company.description}</p></div>
           </div>
           <nav aria-label="Footer navigation" className="flex flex-wrap gap-x-6 gap-y-3">
             {navItems.map((item) => <a key={item.href} href={item.href} className="text-sm font-semibold text-slate-400 transition hover:text-white">{item.label}</a>)}
@@ -366,7 +393,7 @@ function Footer({ config }: HomepageProps) {
         </div>
         <div className="mt-9 flex flex-col justify-between gap-2 border-t border-white/10 pt-6 text-xs text-slate-500 sm:flex-row">
           <p>© {new Date().getFullYear()} {config.company.legalName}. All rights reserved.</p>
-          <p>Moving labor only · Customer provides transportation</p>
+          <p>Professional moving crew + truck service</p>
         </div>
       </Container>
     </footer>
@@ -382,8 +409,8 @@ export function Homepage({ config }: HomepageProps) {
         <Services config={config} />
         <Pricing config={config} />
         <MovingCostEstimator
-          pricing={config.pricing}
-          travelFees={config.travelFees}
+          serviceTypes={config.serviceTypes}
+          defaultServiceTypeId={config.defaultServiceTypeId}
           estimator={config.estimator}
         />
         <TravelFees config={config} />
@@ -393,7 +420,9 @@ export function Homepage({ config }: HomepageProps) {
         <BookingRequestSection
           company={config.company}
           settings={config.bookingSettings}
+          serviceTypes={config.serviceTypes}
         />
+        <Testimonials config={config} />
         <Contact config={config} />
       </main>
       <Footer config={config} />

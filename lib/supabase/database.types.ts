@@ -4,6 +4,8 @@ export type BookingStatus =
   | "completed"
   | "cancelled";
 
+export type BookingServiceType = "movers_and_truck" | "crew_only";
+
 export type Database = {
   public: {
     Tables: {
@@ -42,11 +44,12 @@ export type Database = {
           requested_time: string;
           pickup_address: string;
           destination_address: string;
+          service_type: BookingServiceType;
           crew_size: number;
           estimated_hours: number;
           round_trip_miles: number;
-          hourly_rate: number;
-          estimated_labor_cost: number;
+          hourly_rate: number | null;
+          estimated_labor_cost: number | null;
           travel_fee: number | null;
           estimated_base_total: number | null;
           has_piano: boolean;
@@ -68,11 +71,12 @@ export type Database = {
           requested_time: string;
           pickup_address: string;
           destination_address: string;
+          service_type: BookingServiceType;
           crew_size: number;
           estimated_hours: number;
           round_trip_miles: number;
-          hourly_rate: number;
-          estimated_labor_cost: number;
+          hourly_rate: number | null;
+          estimated_labor_cost: number | null;
           travel_fee: number | null;
           estimated_base_total: number | null;
           has_piano?: boolean;

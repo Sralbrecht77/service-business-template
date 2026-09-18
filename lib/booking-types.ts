@@ -1,4 +1,5 @@
 import type { EstimateResult } from "@/lib/pricing";
+import type { ServiceTypeId } from "@/lib/business-config";
 
 export type SpecialtySelections = {
   hasPiano: boolean;
@@ -18,6 +19,7 @@ export type BookingRequestPayload = SpecialtySelections & {
   requestedTime: string;
   pickupAddress: string;
   destinationAddress: string;
+  serviceType: ServiceTypeId;
   crewSize: number;
   estimatedHours: number;
   roundTripMiles: number;
@@ -28,8 +30,10 @@ export type BookingConfirmation = {
   customerName: string;
   requestedDate: string;
   requestedTime: string;
+  serviceType: ServiceTypeId;
   crewSize: number;
+  hourlyRate: number | null;
   estimatedBaseTotal: number | null;
-  estimatedLaborCost: number;
+  estimatedLaborCost: number | null;
   travelFee: number | null;
 };

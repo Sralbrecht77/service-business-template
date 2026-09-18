@@ -5,10 +5,12 @@ import { StatusBadge } from "@/components/admin/status-badge";
 import { StatusManager } from "@/components/admin/status-manager";
 import { InternalJobNotes } from "@/components/admin/internal-job-notes";
 import {
+  bookingNeedsCustomQuote,
   formatAdminDate,
   formatAdminDateTime,
   formatAdminTime,
   formatMoney,
+  formatServiceType,
 } from "@/lib/admin-bookings";
 import { businessConfig } from "@/lib/business-config";
 import { getAdminContext } from "@/lib/supabase/auth";
@@ -53,12 +55,13 @@ export default async function BookingDetailPage({ params }: BookingDetailPagePro
   if (error || !booking) notFound();
 
   const specialItems = [
-    ["Piano", booking.has_piano],
-    ["Gun safe", booking.has_gun_safe],
-    ["Heavy item", booking.has_heavy_item],
+    ["Piano — custom quote", booking.has_piano],
+    ["Gun safe — custom quote", booking.has_gun_safe],
+    ["Heavy item — custom quote", booking.has_heavy_item],
     ["Excessive stairs", booking.has_excessive_stairs],
     ["Long carry", booking.has_long_carry],
   ] as const;
+  const customQuoteRequired = bookingNeedsCustomQuote(booking);
 
   return (
     <div className="mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-12 lg:px-10">
@@ -92,13 +95,14 @@ export default async function BookingDetailPage({ params }: BookingDetailPagePro
 
         <div className="space-y-6">
           <DetailCard title="Estimate details">
-            <DetailRow label="Crew size" value={`${booking.crew_size} movers`} />
+            <DetailRow label="Service type" value={formatServiceType(booking.service_type)} />
+            <DetailRow label="Requested crew" value={`${booking.crew_size} movers`} />
             <DetailRow label="Estimated hours" value={`${booking.estimated_hours} hours`} />
             <DetailRow label="Round-trip mileage" value={`${booking.round_trip_miles} miles`} />
-            <DetailRow label="Hourly crew rate" value={`${formatMoney(booking.hourly_rate)}/hour`} />
-            <DetailRow label="Estimated labor cost" value={formatMoney(booking.estimated_labor_cost)} />
-            <DetailRow label="Travel fee" value={booking.travel_fee === null ? "Quote required" : formatMoney(booking.travel_fee)} />
-            <DetailRow label="Estimated base total" value={booking.estimated_base_total === null ? `${formatMoney(booking.estimated_labor_cost)} + travel quote` : formatMoney(booking.estimated_base_total)} />
+            <DetailRow label="Hourly rate" value={booking.hourly_rate === null ? "Custom quote required" : `${formatMoney(booking.hourly_rate)}/hour`} />
+            <DetailRow label="Estimated labor cost" value={booking.estimated_labor_cost === null ? "Custom quote required" : formatMoney(booking.estimated_labor_cost)} />
+            <DetailRow label="Travel / mobilization fee" value={customQuoteRequired || booking.travel_fee === null ? "Custom quote required" : formatMoney(booking.travel_fee)} />
+            <DetailRow label="Estimated base total" value={customQuoteRequired ? "Custom quote required" : booking.estimated_base_total === null ? `${formatMoney(booking.estimated_labor_cost)} + custom travel quote` : formatMoney(booking.estimated_base_total)} />
           </DetailCard>
         </div>
 

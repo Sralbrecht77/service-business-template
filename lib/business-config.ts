@@ -13,6 +13,43 @@ export type IconName =
   | "phone"
   | "mail";
 
+export const serviceTypeIds = ["movers_and_truck", "crew_only"] as const;
+
+export type ServiceTypeId = (typeof serviceTypeIds)[number];
+
+export type CrewPricingConfig = {
+  crews: Array<{
+    movers: number;
+    rate: number;
+    note: string;
+    featured?: boolean;
+  }>;
+  additionalMoverRate?: number;
+  customQuoteFromMovers?: number;
+  minimumHours: number;
+  billingNote: string;
+  startingPriceNote: string;
+};
+
+export type TravelFeeConfig = {
+  minMiles: number;
+  maxMiles: number | null;
+  mileage: string;
+  fee: number | null;
+};
+
+export type ServiceTypeConfig = {
+  id: ServiceTypeId;
+  label: string;
+  description: string;
+  enabled: boolean;
+  crewSizes: number[];
+  pricingMode: "hourly" | "custom_quote";
+  pricing: CrewPricingConfig | null;
+  travelFees: TravelFeeConfig[] | null;
+  customQuoteMessage: string;
+};
+
 export type BusinessConfig = {
   company: {
     name: string;
@@ -20,6 +57,10 @@ export type BusinessConfig = {
     legalName: string;
     tagline: string;
     description: string;
+  };
+  assets: {
+    logoPath: string;
+    truckImagePath: string;
   };
   hero: {
     eyebrow: string;
@@ -33,23 +74,10 @@ export type BusinessConfig = {
     description: string;
     icon: IconName;
   }>;
-  pricing: {
-    crews: Array<{
-      movers: number;
-      rate: number;
-      note: string;
-      featured?: boolean;
-    }>;
-    additionalMoverRate: number;
-    minimumHours: number;
-    billingNote: string;
-  };
-  travelFees: Array<{
-    minMiles: number;
-    maxMiles: number;
-    mileage: string;
-    fee: number;
-  }>;
+  pricing: CrewPricingConfig;
+  travelFees: TravelFeeConfig[];
+  serviceTypes: ServiceTypeConfig[];
+  defaultServiceTypeId: ServiceTypeId;
   specialItems: string[];
   estimator: {
     eyebrow: string;
@@ -93,7 +121,17 @@ export type BusinessConfig = {
     title: string;
     description: string;
     status: string;
+    visualLocation: string;
+    visualLabel: string;
+    visualRadius: string;
   };
+  testimonials: Array<{
+    name: string;
+    quote: string;
+    source?: string;
+    rating?: number;
+    isPlaceholder?: boolean;
+  }>;
   contact: {
     title: string;
     description: string;
@@ -105,36 +143,113 @@ export type BusinessConfig = {
   };
 };
 
+const moversAndTruckPricing: CrewPricingConfig = {
+  crews: [
+    { movers: 2, rate: 125, note: "Crew and moving truck included" },
+    {
+      movers: 3,
+      rate: 165,
+      note: "Crew and moving truck included",
+      featured: true,
+    },
+    { movers: 4, rate: 205, note: "Crew and moving truck included" },
+  ],
+  customQuoteFromMovers: 5,
+  minimumHours: 2,
+  billingNote: "Hourly rates include the selected moving crew and truck.",
+  startingPriceNote:
+    "A 2-mover job starts at $250 before travel / mobilization and specialty charges.",
+};
+
+const crewOnlyPricing: CrewPricingConfig = {
+  crews: [
+    { movers: 2, rate: 125, note: "Moving crew; customer provides transportation" },
+    {
+      movers: 3,
+      rate: 165,
+      note: "Moving crew; customer provides transportation",
+      featured: true,
+    },
+    { movers: 4, rate: 205, note: "Moving crew; customer provides transportation" },
+  ],
+  additionalMoverRate: 40,
+  minimumHours: 2,
+  billingNote:
+    "Hourly rates include the selected moving crew. The customer provides transportation.",
+  startingPriceNote:
+    "A 2-mover Crew Only job starts at $250 before any travel / mobilization and specialty charges.",
+};
+
+const moversAndTruckTravelFees: TravelFeeConfig[] = [
+  { minMiles: 0, maxMiles: 15, mileage: "0–15 miles", fee: 50 },
+  { minMiles: 16, maxMiles: 30, mileage: "16–30 miles", fee: 75 },
+  { minMiles: 31, maxMiles: 50, mileage: "31–50 miles", fee: 125 },
+  { minMiles: 51, maxMiles: 75, mileage: "51–75 miles", fee: 175 },
+  { minMiles: 76, maxMiles: null, mileage: "More than 75 miles", fee: null },
+];
+
+const serviceTypes: ServiceTypeConfig[] = [
+  {
+    id: "movers_and_truck",
+    label: "Movers + Truck",
+    description: "Guidestone provides the moving crew and truck.",
+    enabled: true,
+    crewSizes: moversAndTruckPricing.crews.map((crew) => crew.movers),
+    pricingMode: "hourly",
+    pricing: moversAndTruckPricing,
+    travelFees: moversAndTruckTravelFees,
+    customQuoteMessage:
+      "Some move details require review before final pricing can be confirmed.",
+  },
+  {
+    id: "crew_only",
+    label: "Crew Only",
+    description:
+      "You provide the truck, trailer, POD, or container. Guidestone provides the moving crew.",
+    enabled: true,
+    crewSizes: [2, 3, 4, 5, 6, 7, 8],
+    pricingMode: "hourly",
+    pricing: crewOnlyPricing,
+    travelFees: null,
+    customQuoteMessage:
+      "Crew Only hourly pricing is shown. Guidestone will confirm any travel / mobilization and specialty charges after reviewing your request.",
+  },
+];
+
 export const businessConfig = {
   company: {
-    name: "Guidestone Moving Co",
+    name: "Guidestone Moving Co LLC",
     shortName: "Guidestone",
     legalName: "Guidestone Moving Co LLC",
     tagline: "Moving You Forward. Every Step of the Way.",
-    description: "Professional labor-only moving services.",
+    description: "Professional moving services with the crew and truck included.",
+  },
+  assets: {
+    logoPath: "/guidestone-logo.png",
+    truckImagePath: "/guidestone-truck.png",
   },
   hero: {
-    eyebrow: "Labor-only moving help",
-    title: "You Rent the Truck. We Handle the Heavy Work.",
+    eyebrow: "Professional moving services",
+    title: "Your Move. Our Truck and Crew.",
     description:
-      "A dependable moving crew for loading, unloading, rearranging, and the heavy lifting in between.",
+      "Guidestone brings the moving truck and a capable crew for local and regional moves, with straightforward hourly pricing.",
     primaryCta: "Request an estimate",
-    secondaryCta: "View crew pricing",
+    secondaryCta: "View crew + truck pricing",
   },
   services: [
     {
-      title: "Trucks & trailers",
-      description: "Careful loading and unloading to make the most of your space.",
+      title: "Truck + moving crew",
+      description: "A coordinated crew and moving truck for your move from start to finish.",
       icon: "truck",
     },
     {
-      title: "Storage containers",
-      description: "Organized help with portable and stationary storage units.",
+      title: "Local & regional moves",
+      description: "Moving help for nearby and regional jobs, subject to availability and travel arrangements.",
       icon: "container",
     },
     {
-      title: "Furniture rearranging",
-      description: "Refresh a room or move furniture exactly where it needs to go.",
+      title: "Loading & unloading",
+      description: "Careful loading and unloading to keep move day organized and efficient.",
       icon: "sofa",
     },
     {
@@ -144,42 +259,25 @@ export const businessConfig = {
     },
     {
       title: "Heavy lifting",
-      description: "Extra muscle for bulky, awkward, and difficult household items.",
+      description: "Moving help for bulky, awkward, and difficult household items, with review when needed.",
       icon: "weight",
     },
     {
       title: "Stairs & long carries",
-      description: "Reliable help when the route takes extra effort and coordination.",
+      description: "Plan for routes that require extra time, effort, and coordination.",
       icon: "stairs",
     },
   ],
-  pricing: {
-    crews: [
-      { movers: 2, rate: 125, note: "Great for apartments & smaller moves" },
-      {
-        movers: 3,
-        rate: 165,
-        note: "Our most versatile crew size",
-        featured: true,
-      },
-      { movers: 4, rate: 205, note: "Built for larger, faster moves" },
-    ],
-    additionalMoverRate: 40,
-    minimumHours: 2,
-    billingNote: "Rates are for the entire crew, not per person.",
-  },
-  travelFees: [
-    { minMiles: 0, maxMiles: 15, mileage: "0–15 miles", fee: 0 },
-    { minMiles: 16, maxMiles: 30, mileage: "16–30 miles", fee: 35 },
-    { minMiles: 31, maxMiles: 45, mileage: "31–45 miles", fee: 60 },
-    { minMiles: 46, maxMiles: 60, mileage: "46–60 miles", fee: 85 },
-  ],
+  pricing: moversAndTruckPricing,
+  travelFees: moversAndTruckTravelFees,
+  serviceTypes,
+  defaultServiceTypeId: "movers_and_truck",
   specialItems: ["Pianos", "Gun safes", "Very large or heavy items"],
   estimator: {
     eyebrow: "Moving cost estimator",
     title: "Build a quick move-day estimate.",
     description:
-      "Choose your crew, estimated time, and round-trip mileage for an instant base estimate.",
+      "Choose the kind of moving help you need, your crew size, estimated time, and round-trip mileage.",
     maxCrewSize: 8,
     maxHours: 24,
     hourStep: 0.5,
@@ -233,51 +331,80 @@ export const businessConfig = {
       { value: "14:00", label: "2:00 PM" },
     ],
     temporaryDefaultsNotice:
-      "Scheduling times are temporary request windows and are not guaranteed until confirmed.",
+      "Scheduling times are request windows and are not guaranteed until confirmed.",
   },
   whyChooseUs: [
     {
       title: "Straightforward pricing",
-      description: "Clear crew rates and mileage-based travel fees before the work begins.",
+      description: "Clear crew + truck rates and mileage-based mobilization fees before the work begins.",
       icon: "check",
     },
     {
       title: "The right crew",
-      description: "Choose the crew size that fits your move, your timeline, and your space.",
+      description: "Choose a confirmed crew size that fits your move, timeline, and space.",
       icon: "users",
     },
     {
-      title: "Careful, capable help",
-      description: "Focused moving labor for the hard work that move day demands.",
-      icon: "shield",
+      title: "Truck included",
+      description: "Guidestone provides the moving truck along with your selected crew.",
+      icon: "truck",
     },
     {
       title: "Your schedule matters",
-      description: "A professional team committed to keeping your move moving forward.",
+      description: "Request the move date and start window that work best for your plans.",
       icon: "clock",
     },
   ],
   estimate: {
-    title: "Know what your move needs?",
+    title: "Ready to plan your move?",
     description:
-      "Tell us about your truck, crew size, location, and any specialty items. We’ll help you plan the labor.",
+      "Tell us your preferred crew size, move locations, mileage, and any specialty items. We’ll help you plan the truck and crew.",
     buttonLabel: "Get a moving estimate",
   },
   serviceArea: {
     eyebrow: "Service area",
-    title: "Local help for moves in your area.",
+    title: "Based around Wayne County.",
     description:
-      "Travel fees are based on round-trip mileage. Share your locations when requesting an estimate and we’ll confirm availability and any applicable fee.",
-    status: "Specific cities and coverage details coming soon.",
+      "Our primary service area is approximately a 60-mile radius around Wayne County. Moves outside that area may be available depending on the job and require confirmation or custom arrangements.",
+    status:
+      "Travel / mobilization pricing extends through 75 miles. Longer-distance requests require a custom quote.",
+    visualLocation: "Wayne County",
+    visualLabel: "Primary service area",
+    visualRadius: "Approx. 60-mile radius",
   },
+  testimonials: [
+    {
+      name: "Test Customer One",
+      quote:
+        "The sample moving crew was friendly, careful, and easy to coordinate with from start to finish.",
+      source: "Development demo — crew experience",
+      rating: 5,
+      isPlaceholder: true,
+    },
+    {
+      name: "Test Customer Two",
+      quote: "The sample booking experience was simple and clear.",
+      source: "Development demo — booking experience",
+      rating: 4,
+      isPlaceholder: true,
+    },
+    {
+      name: "Test Customer Three",
+      quote:
+        "For this layout test, the sample team took time with the furniture, handled each piece carefully, and kept the move organized throughout the day.",
+      source: "Development demo — furniture handling",
+      rating: 5,
+      isPlaceholder: true,
+    },
+  ],
   contact: {
-    title: "Ready to line up your moving crew?",
+    title: "Ready to line up your truck and moving crew?",
     description:
-      "Reach out with your move date, locations, and the kind of help you need. We’ll take it from there.",
-    phoneLabel: "Phone number coming soon",
-    phoneHref: "#contact",
-    emailLabel: "Email address coming soon",
-    emailHref: "#contact",
-    availability: "Scheduling details coming soon",
+      "Reach out with your move date, locations, and the kind of help you need. We’ll review the details with you.",
+    phoneLabel: "606-624-5407",
+    phoneHref: "tel:+16066245407",
+    emailLabel: "guidestonemovingco@gmail.com",
+    emailHref: "mailto:guidestonemovingco@gmail.com",
+    availability: "Move dates and start times are confirmed after request review.",
   },
 } satisfies BusinessConfig;

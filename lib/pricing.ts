@@ -1,24 +1,47 @@
-import type { BusinessConfig } from "@/lib/business-config";
+import type {
+  ServiceTypeConfig,
+  ServiceTypeId,
+} from "@/lib/business-config";
 
 export type EstimateInput = {
+  serviceType: ServiceTypeId;
   crewSize: number;
   estimatedHours: number;
   roundTripMiles: number;
 };
 
 export type EstimateResult = EstimateInput & {
-  hourlyRate: number;
-  estimatedLaborCost: number;
+  hourlyRate: number | null;
+  estimatedLaborCost: number | null;
   travelFee: number | null;
   estimatedBaseTotal: number | null;
   travelTierLabel: string | null;
+  requiresCustomQuote: boolean;
 };
 
 export function calculateEstimate(
   input: EstimateInput,
-  pricing: BusinessConfig["pricing"],
-  travelFees: BusinessConfig["travelFees"],
+  serviceType: ServiceTypeConfig,
 ): EstimateResult {
+  if (
+    input.serviceType !== serviceType.id ||
+    !serviceType.enabled ||
+    !serviceType.crewSizes.includes(input.crewSize) ||
+    serviceType.pricingMode === "custom_quote" ||
+    serviceType.pricing === null
+  ) {
+    return {
+      ...input,
+      hourlyRate: null,
+      estimatedLaborCost: null,
+      travelFee: null,
+      estimatedBaseTotal: null,
+      travelTierLabel: null,
+      requiresCustomQuote: true,
+    };
+  }
+
+  const pricing = serviceType.pricing;
   const sortedCrews = [...pricing.crews].sort((a, b) => a.movers - b.movers);
   const largestConfiguredCrew = sortedCrews[sortedCrews.length - 1];
   const configuredRate = sortedCrews.find(
@@ -26,14 +49,30 @@ export function calculateEstimate(
   )?.rate;
   const hourlyRate =
     configuredRate ??
-    largestConfiguredCrew.rate +
-      Math.max(0, input.crewSize - largestConfiguredCrew.movers) *
-        pricing.additionalMoverRate;
+    (pricing.additionalMoverRate !== undefined && largestConfiguredCrew
+      ? largestConfiguredCrew.rate +
+        Math.max(0, input.crewSize - largestConfiguredCrew.movers) *
+          pricing.additionalMoverRate
+      : undefined);
+
+  if (hourlyRate === undefined) {
+    return {
+      ...input,
+      hourlyRate: null,
+      estimatedLaborCost: null,
+      travelFee: null,
+      estimatedBaseTotal: null,
+      travelTierLabel: null,
+      requiresCustomQuote: true,
+    };
+  }
+
   const estimatedLaborCost = hourlyRate * input.estimatedHours;
   const billableMileage = Math.ceil(input.roundTripMiles);
-  const travelTier = travelFees.find(
+  const travelTier = serviceType.travelFees?.find(
     (tier) =>
-      billableMileage >= tier.minMiles && billableMileage <= tier.maxMiles,
+      billableMileage >= tier.minMiles &&
+      (tier.maxMiles === null || billableMileage <= tier.maxMiles),
   );
   const travelFee = travelTier?.fee ?? null;
 
@@ -45,5 +84,6 @@ export function calculateEstimate(
     estimatedBaseTotal:
       travelFee === null ? null : estimatedLaborCost + travelFee,
     travelTierLabel: travelTier?.mileage ?? null,
+    requiresCustomQuote: travelFee === null,
   };
 }

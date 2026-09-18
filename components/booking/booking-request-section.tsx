@@ -15,6 +15,7 @@ import { formatRequestedDate, getBookingWindow } from "@/lib/booking-rules";
 type BookingRequestSectionProps = {
   company: BusinessConfig["company"];
   settings: BusinessConfig["bookingSettings"];
+  serviceTypes: BusinessConfig["serviceTypes"];
 };
 
 type BookingStep = "schedule" | "details" | "confirmation";
@@ -25,9 +26,21 @@ const currency = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 0,
 });
 
-function EstimateSummary({ compact = false }: { compact?: boolean }) {
+function EstimateSummary({
+  serviceTypes,
+  compact = false,
+}: {
+  serviceTypes: BusinessConfig["serviceTypes"];
+  compact?: boolean;
+}) {
   const { estimate } = useBookingFlow();
   if (!estimate) return null;
+
+  const serviceType = serviceTypes.find(
+    (option) => option.id === estimate.serviceType,
+  );
+  const serviceLabel = serviceType?.label ?? estimate.serviceType;
+  const servicePricingNeedsQuote = estimate.hourlyRate === null;
 
   const selectedDetails = [
     estimate.hasPiano && "Piano",
@@ -42,24 +55,32 @@ function EstimateSummary({ compact = false }: { compact?: boolean }) {
       <div className="flex items-center justify-between gap-4 border-b border-white/15 pb-4">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.17em] text-blue-300">Estimate summary</p>
-          <p className="mt-1 font-bold">{estimate.crewSize} movers · {estimate.estimatedHours} hours</p>
+          <p className="mt-1 font-bold">{serviceLabel} · {estimate.crewSize} movers · {estimate.estimatedHours} hours</p>
         </div>
         <Icon name="truck" className="size-6 text-blue-300" />
       </div>
       <dl className="mt-5 space-y-3 text-sm">
-        <div className="flex justify-between gap-4"><dt className="text-slate-400">Crew rate</dt><dd className="font-bold">{currency.format(estimate.hourlyRate)}/hr</dd></div>
-        <div className="flex justify-between gap-4"><dt className="text-slate-400">Labor estimate</dt><dd className="font-bold">{currency.format(estimate.estimatedLaborCost)}</dd></div>
+        <div className="flex justify-between gap-4"><dt className="text-slate-400">Service type</dt><dd className="font-bold">{serviceLabel}</dd></div>
+        <div className="flex justify-between gap-4"><dt className="text-slate-400">Hourly rate</dt><dd className={servicePricingNeedsQuote ? "text-right font-bold text-amber-300" : "font-bold"}>{estimate.hourlyRate === null ? "Custom quote required" : `${currency.format(estimate.hourlyRate)}/hr`}</dd></div>
+        <div className="flex justify-between gap-4"><dt className="text-slate-400">Estimated labor cost</dt><dd className={servicePricingNeedsQuote ? "text-right font-bold text-amber-300" : "font-bold"}>{estimate.estimatedLaborCost === null ? "Custom quote required" : currency.format(estimate.estimatedLaborCost)}</dd></div>
         <div className="flex justify-between gap-4"><dt className="text-slate-400">Round-trip miles</dt><dd className="font-bold">{estimate.roundTripMiles}</dd></div>
-        <div className="flex justify-between gap-4"><dt className="text-slate-400">Travel fee</dt><dd className={estimate.travelFee === null ? "font-bold text-amber-300" : "font-bold"}>{estimate.travelFee === null ? "Quote needed" : currency.format(estimate.travelFee)}</dd></div>
+        <div className="flex justify-between gap-4"><dt className="text-slate-400">Travel / mobilization</dt><dd className={estimate.travelFee === null ? "font-bold text-amber-300" : "font-bold"}>{estimate.travelFee === null ? "Custom quote" : currency.format(estimate.travelFee)}</dd></div>
       </dl>
       <div className="mt-5 flex items-end justify-between gap-4 border-t border-white/15 pt-5">
         <span className="text-sm font-bold">Estimated base total</span>
         <span className="text-right text-2xl font-extrabold tracking-tight">
           {estimate.estimatedBaseTotal === null
-            ? `${currency.format(estimate.estimatedLaborCost)} + travel`
+            ? estimate.estimatedLaborCost === null
+              ? "Custom quote required"
+              : `${currency.format(estimate.estimatedLaborCost)} + custom travel quote`
             : currency.format(estimate.estimatedBaseTotal)}
         </span>
       </div>
+      {servicePricingNeedsQuote && serviceType ? (
+        <p className="mt-5 rounded-xl bg-amber-300/10 p-4 text-xs leading-5 text-amber-100">
+          {serviceType.customQuoteMessage}
+        </p>
+      ) : null}
       {selectedDetails.length > 0 ? (
         <div className="mt-5 rounded-xl bg-white/8 p-4 text-xs leading-5 text-slate-300">
           <span className="font-bold text-white">Move details:</span> {selectedDetails.join(", ")}
@@ -94,6 +115,7 @@ function Progress({ step }: { step: BookingStep }) {
 export function BookingRequestSection({
   company,
   settings,
+  serviceTypes,
 }: BookingRequestSectionProps) {
   const { estimate } = useBookingFlow();
   const [step, setStep] = useState<BookingStep>("schedule");
@@ -178,6 +200,7 @@ export function BookingRequestSection({
       moveNotes: String(formData.get("moveNotes") ?? ""),
       requestedDate,
       requestedTime,
+      serviceType: estimate.serviceType,
       crewSize: estimate.crewSize,
       estimatedHours: estimate.estimatedHours,
       roundTripMiles: estimate.roundTripMiles,
@@ -224,12 +247,15 @@ export function BookingRequestSection({
   const selectedTimeLabel =
     settings.startTimes.find((time) => time.value === requestedTime)?.label ??
     requestedTime;
+  const confirmationServiceType = confirmation
+    ? serviceTypes.find((option) => option.id === confirmation.serviceType)
+    : null;
 
   return (
     <section id="booking" className="section scroll-mt-6 bg-white">
       <div className="mx-auto w-full max-w-7xl px-5 sm:px-8 lg:px-10">
         <div className="mx-auto max-w-3xl text-center">
-          <p className="mb-4 text-xs font-bold uppercase tracking-[0.22em] text-blue-600">Request your move date</p>
+          <p className="mb-4 text-xs font-bold uppercase tracking-[0.22em] text-blue-600">Request moving service</p>
           <h2 className="text-balance text-3xl font-bold tracking-[-0.035em] text-navy sm:text-4xl lg:text-5xl">Schedule the next step.</h2>
           <p className="mt-5 text-lg leading-8 text-slate-600">Choose a preferred date and time, then send your move details. This is a request until {company.shortName} confirms it.</p>
         </div>
@@ -238,7 +264,7 @@ export function BookingRequestSection({
           <div className="mx-auto mt-12 max-w-3xl rounded-3xl border border-blue-200 bg-blue-50 p-8 text-center sm:p-10">
             <div className="mx-auto grid size-14 place-items-center rounded-2xl bg-blue-600 text-white"><Icon name="clock" /></div>
             <h3 className="mt-5 text-2xl font-bold text-navy">Start with your moving estimate</h3>
-            <p className="mx-auto mt-3 max-w-xl leading-7 text-slate-600">Choose your crew, hours, mileage, and move conditions first. We’ll carry those details into your booking request.</p>
+            <p className="mx-auto mt-3 max-w-xl leading-7 text-slate-600">Choose your service type, crew size, hours, mileage, and move conditions first. We’ll carry those details into your booking request.</p>
             <a href="#estimator" className="button button-primary mt-7">Build my estimate <ArrowIcon /></a>
           </div>
         ) : (
@@ -321,7 +347,7 @@ export function BookingRequestSection({
                     </div>
                     <p className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">{settings.temporaryDefaultsNotice}</p>
                   </div>
-                  <EstimateSummary compact />
+                  <EstimateSummary serviceTypes={serviceTypes} compact />
                   {error ? <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold leading-6 text-red-800">{error}</p> : null}
                   <button
                     type="button"
@@ -383,7 +409,7 @@ export function BookingRequestSection({
                     <p className="mt-1 text-sm text-slate-600">Preferred start: {selectedTimeLabel}</p>
                     <p className="mt-3 text-xs leading-5 text-slate-500">This request is not an appointment until {company.shortName} confirms it.</p>
                   </div>
-                  <EstimateSummary compact />
+                  <EstimateSummary serviceTypes={serviceTypes} compact />
                   {error ? <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold leading-6 text-red-800">{error}</p> : null}
                   <button type="submit" disabled={isSubmitting} className="button button-primary w-full disabled:cursor-wait disabled:opacity-60">
                     {isSubmitting ? "Submitting request…" : "Submit booking request"}
@@ -406,8 +432,12 @@ export function BookingRequestSection({
                   {[
                     ["Requested date", formatRequestedDate(confirmation.requestedDate)],
                     ["Preferred time", settings.startTimes.find((time) => time.value === confirmation.requestedTime)?.label ?? confirmation.requestedTime],
-                    ["Crew size", `${confirmation.crewSize} movers`],
-                    ["Estimated base total", confirmation.estimatedBaseTotal === null ? `${currency.format(confirmation.estimatedLaborCost)} + travel quote` : currency.format(confirmation.estimatedBaseTotal)],
+                    ["Service type", confirmationServiceType?.label ?? confirmation.serviceType],
+                    ["Requested crew", `${confirmation.crewSize} movers`],
+                    ["Hourly rate", confirmation.hourlyRate === null ? "Custom quote required" : `${currency.format(confirmation.hourlyRate)}/hour`],
+                    ["Estimated labor cost", confirmation.estimatedLaborCost === null ? "Custom quote required" : currency.format(confirmation.estimatedLaborCost)],
+                    ["Travel / mobilization fee", confirmation.travelFee === null ? "Custom quote required" : currency.format(confirmation.travelFee)],
+                    ["Estimated base total", confirmation.estimatedBaseTotal === null ? confirmation.estimatedLaborCost === null ? "Custom quote required" : `${currency.format(confirmation.estimatedLaborCost)} + custom travel quote` : currency.format(confirmation.estimatedBaseTotal)],
                   ].map(([label, value]) => (
                     <div key={label} className="bg-white p-6">
                       <dt className="text-xs font-bold uppercase tracking-wider text-slate-400">{label}</dt>
@@ -416,6 +446,11 @@ export function BookingRequestSection({
                   ))}
                 </dl>
                 <div className="p-7 text-center sm:p-9">
+                  {confirmation.hourlyRate === null && confirmationServiceType ? (
+                    <p className="mb-4 rounded-xl bg-amber-50 p-4 text-sm font-semibold leading-6 text-amber-900">
+                      {confirmationServiceType.customQuoteMessage}
+                    </p>
+                  ) : null}
                   <p className="text-sm leading-6 text-slate-600">This is a booking request, not a guaranteed appointment. Keep an eye on your phone and email for confirmation.</p>
                   <a href="#top" className="mt-5 inline-flex text-sm font-bold text-blue-700 hover:text-blue-500">Return to top ↑</a>
                 </div>

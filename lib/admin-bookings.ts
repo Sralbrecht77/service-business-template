@@ -1,7 +1,9 @@
 import type {
+  BookingServiceType,
   BookingStatus,
   Database,
 } from "@/lib/supabase/database.types";
+import { businessConfig } from "@/lib/business-config";
 
 export type Booking = Database["public"]["Tables"]["bookings"]["Row"];
 
@@ -17,13 +19,24 @@ export function isBookingStatus(value: string): value is BookingStatus {
 }
 
 export function formatMoney(value: number | null) {
-  if (value === null) return "Travel quote required";
+  if (value === null) return "Custom quote required";
 
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
     maximumFractionDigits: 0,
   }).format(value);
+}
+
+export function formatServiceType(value: BookingServiceType) {
+  return (
+    businessConfig.serviceTypes.find((serviceType) => serviceType.id === value)
+      ?.label ?? value
+  );
+}
+
+export function bookingNeedsCustomQuote(booking: Booking) {
+  return booking.hourly_rate === null || booking.estimated_labor_cost === null;
 }
 
 export function formatAdminDate(date: string) {

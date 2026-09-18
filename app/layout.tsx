@@ -3,7 +3,7 @@ import { businessConfig } from "@/lib/business-config";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: `${businessConfig.company.name} | Labor-Only Moving Services`,
+  title: `${businessConfig.company.name} | Moving Crew + Truck Services`,
   description: businessConfig.hero.description,
 };
 

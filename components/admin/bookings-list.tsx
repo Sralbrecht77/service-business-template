@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { StatusBadge } from "@/components/admin/status-badge";
 import {
+  bookingNeedsCustomQuote,
   formatAdminDate,
   formatAdminTime,
   formatMoney,
+  formatServiceType,
   type Booking,
 } from "@/lib/admin-bookings";
 
@@ -40,8 +42,8 @@ export function BookingsList({ bookings }: { bookings: Booking[] }) {
               <p><span className="font-extrabold uppercase tracking-wide text-blue-700">Moving TO:</span> {booking.destination_address}</p>
             </div>
             <div className="mt-4 flex items-center justify-between gap-4 text-sm">
-              <span className="font-semibold text-slate-500">{booking.crew_size} movers · {booking.estimated_hours} hrs</span>
-              <span className="font-extrabold text-navy">{formatMoney(booking.estimated_base_total)}</span>
+              <span className="font-semibold text-slate-500">{formatServiceType(booking.service_type)} · {booking.crew_size} movers · {booking.estimated_hours} hrs</span>
+              <span className="text-right font-extrabold text-navy">{bookingNeedsCustomQuote(booking) ? "Custom quote required" : formatMoney(booking.estimated_base_total)}</span>
             </div>
           </Link>
         ))}
@@ -55,7 +57,7 @@ export function BookingsList({ bookings }: { bookings: Booking[] }) {
               <th className="px-5 py-4">Customer</th>
               <th className="px-5 py-4">Contact</th>
               <th className="px-5 py-4">Move</th>
-              <th className="px-5 py-4">Crew</th>
+              <th className="px-5 py-4">Service / crew</th>
               <th className="px-5 py-4">Estimate</th>
               <th className="px-5 py-4">Status</th>
               <th className="px-5 py-4"><span className="sr-only">Open</span></th>
@@ -77,8 +79,8 @@ export function BookingsList({ bookings }: { bookings: Booking[] }) {
                   <p><span className="font-extrabold uppercase tracking-wide text-blue-700">FROM:</span> {booking.pickup_address}</p>
                   <p className="mt-2"><span className="font-extrabold uppercase tracking-wide text-blue-700">TO:</span> {booking.destination_address}</p>
                 </td>
-                <td className="whitespace-nowrap px-5 py-5 text-sm text-slate-600">{booking.crew_size} movers<br />{booking.estimated_hours} hours</td>
-                <td className="whitespace-nowrap px-5 py-5 font-extrabold text-navy">{formatMoney(booking.estimated_base_total)}</td>
+                <td className="whitespace-nowrap px-5 py-5 text-sm text-slate-600"><span className="font-bold text-navy">{formatServiceType(booking.service_type)}</span><br />{booking.crew_size} movers · {booking.estimated_hours} hours</td>
+                <td className="whitespace-nowrap px-5 py-5 font-extrabold text-navy">{bookingNeedsCustomQuote(booking) ? "Custom quote required" : formatMoney(booking.estimated_base_total)}</td>
                 <td className="px-5 py-5"><StatusBadge status={booking.status} /></td>
                 <td className="px-5 py-5 text-right">
                   <Link href={`/admin/bookings/${booking.id}`} className="text-sm font-extrabold text-blue-700 hover:text-blue-500">View →</Link>

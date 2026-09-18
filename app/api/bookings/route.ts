@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { businessConfig } from "@/lib/business-config";
+import { businessConfig, serviceTypeIds } from "@/lib/business-config";
 import { isBookableDate } from "@/lib/booking-rules";
 import { calculateEstimate } from "@/lib/pricing";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
@@ -19,6 +19,7 @@ const bookingSchema = z
     requestedTime: z.string().regex(/^\d{2}:\d{2}$/),
     pickupAddress: z.string().trim().min(5).max(300),
     destinationAddress: z.string().trim().min(5).max(300),
+    serviceType: z.enum(serviceTypeIds),
     crewSize: z.number().int(),
     estimatedHours: z.number().finite(),
     roundTripMiles: z.number().finite().min(0).max(10_000),
@@ -58,26 +59,26 @@ export async function POST(request: Request) {
   if (!parsed.success) return validationError();
 
   const booking = parsed.data;
-  const { pricing, travelFees, estimator, bookingSettings } = businessConfig;
-  const configuredCrewSizes = pricing.crews.map((crew) => crew.movers);
-  const minimumCrewSize = Math.min(...configuredCrewSizes);
-  const largestConfiguredCrewSize = Math.max(...configuredCrewSizes);
-  const validCrewSize =
-    configuredCrewSizes.includes(booking.crewSize) ||
-    (booking.crewSize > largestConfiguredCrewSize &&
-      booking.crewSize <= estimator.maxCrewSize);
+  const { estimator, bookingSettings } = businessConfig;
+  const serviceType = businessConfig.serviceTypes.find(
+    (option) => option.id === booking.serviceType && option.enabled,
+  );
+  if (!serviceType) return validationError();
+
+  const minimumHours =
+    serviceType.pricing?.minimumHours ?? estimator.hourStep;
+  const validCrewSize = serviceType.crewSizes.includes(booking.crewSize);
   const validHourIncrement =
     Math.abs(
-      (booking.estimatedHours - pricing.minimumHours) / estimator.hourStep -
+      (booking.estimatedHours - minimumHours) / estimator.hourStep -
         Math.round(
-          (booking.estimatedHours - pricing.minimumHours) / estimator.hourStep,
+          (booking.estimatedHours - minimumHours) / estimator.hourStep,
         ),
     ) < 0.000_001;
 
   if (
-    booking.crewSize < minimumCrewSize ||
     !validCrewSize ||
-    booking.estimatedHours < pricing.minimumHours ||
+    booking.estimatedHours < minimumHours ||
     booking.estimatedHours > estimator.maxHours ||
     !validHourIncrement ||
     !isBookableDate(booking.requestedDate, bookingSettings) ||
@@ -90,12 +91,12 @@ export async function POST(request: Request) {
 
   const estimate = calculateEstimate(
     {
+      serviceType: booking.serviceType,
       crewSize: booking.crewSize,
       estimatedHours: booking.estimatedHours,
       roundTripMiles: booking.roundTripMiles,
     },
-    pricing,
-    travelFees,
+    serviceType,
   );
 
   let supabase;
@@ -118,6 +119,7 @@ export async function POST(request: Request) {
     requested_time: booking.requestedTime,
     pickup_address: booking.pickupAddress,
     destination_address: booking.destinationAddress,
+    service_type: booking.serviceType,
     crew_size: booking.crewSize,
     estimated_hours: booking.estimatedHours,
     round_trip_miles: booking.roundTripMiles,
@@ -160,7 +162,9 @@ export async function POST(request: Request) {
         customerName: booking.customerName,
         requestedDate: booking.requestedDate,
         requestedTime: booking.requestedTime,
+        serviceType: booking.serviceType,
         crewSize: booking.crewSize,
+        hourlyRate: estimate.hourlyRate,
         estimatedBaseTotal: estimate.estimatedBaseTotal,
         estimatedLaborCost: estimate.estimatedLaborCost,
         travelFee: estimate.travelFee,

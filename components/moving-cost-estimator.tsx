@@ -3,12 +3,15 @@
 import { useMemo, useState } from "react";
 import { useBookingFlow } from "@/components/booking/booking-flow-provider";
 import { ArrowIcon, Icon } from "@/components/icons";
-import type { BusinessConfig } from "@/lib/business-config";
+import type {
+  BusinessConfig,
+  ServiceTypeId,
+} from "@/lib/business-config";
 import { calculateEstimate } from "@/lib/pricing";
 
 type MovingCostEstimatorProps = {
-  pricing: BusinessConfig["pricing"];
-  travelFees: BusinessConfig["travelFees"];
+  serviceTypes: BusinessConfig["serviceTypes"];
+  defaultServiceTypeId: BusinessConfig["defaultServiceTypeId"];
   estimator: BusinessConfig["estimator"];
 };
 
@@ -19,47 +22,53 @@ const currency = new Intl.NumberFormat("en-US", {
 });
 
 export function MovingCostEstimator({
-  pricing,
-  travelFees,
+  serviceTypes,
+  defaultServiceTypeId,
   estimator,
 }: MovingCostEstimatorProps) {
   const { setEstimate } = useBookingFlow();
-  const sortedCrews = useMemo(
-    () => [...pricing.crews].sort((a, b) => a.movers - b.movers),
-    [pricing.crews],
+  const enabledServiceTypes = useMemo(
+    () => serviceTypes.filter((serviceType) => serviceType.enabled),
+    [serviceTypes],
   );
-  const smallestCrew = sortedCrews[0];
-  const largestConfiguredCrew = sortedCrews[sortedCrews.length - 1];
+  const initialServiceType =
+    enabledServiceTypes.find(
+      (serviceType) => serviceType.id === defaultServiceTypeId,
+    ) ?? enabledServiceTypes[0];
 
-  const [crewSize, setCrewSize] = useState(smallestCrew.movers);
-  const [hours, setHours] = useState(pricing.minimumHours);
+  const [serviceTypeId, setServiceTypeId] =
+    useState<ServiceTypeId>(initialServiceType.id);
+  const [crewSize, setCrewSize] = useState(initialServiceType.crewSizes[0]);
+  const [hours, setHours] = useState(
+    initialServiceType.pricing?.minimumHours ?? estimator.hourStep,
+  );
   const [mileage, setMileage] = useState(0);
   const [selectedDetails, setSelectedDetails] = useState<string[]>([]);
 
-  const crewOptions = useMemo(() => {
-    const configured = sortedCrews.map((crew) => crew.movers);
-    const additional = Array.from(
-      { length: Math.max(0, estimator.maxCrewSize - largestConfiguredCrew.movers) },
-      (_, index) => largestConfiguredCrew.movers + index + 1,
-    );
-
-    return [...configured, ...additional];
-  }, [estimator.maxCrewSize, largestConfiguredCrew.movers, sortedCrews]);
+  const activeServiceType =
+    enabledServiceTypes.find((serviceType) => serviceType.id === serviceTypeId) ??
+    initialServiceType;
+  const minimumHours =
+    activeServiceType.pricing?.minimumHours ?? estimator.hourStep;
 
   const estimate = useMemo(
     () =>
       calculateEstimate(
         {
+          serviceType: activeServiceType.id,
           crewSize,
           estimatedHours: hours,
           roundTripMiles: mileage,
         },
-        pricing,
-        travelFees,
+        activeServiceType,
       ),
-    [crewSize, hours, mileage, pricing, travelFees],
+    [activeServiceType, crewSize, hours, mileage],
   );
   const travelNeedsQuote = estimate.travelFee === null;
+  const servicePricingNeedsQuote = estimate.hourlyRate === null;
+  const largestConfiguredCrew = activeServiceType.pricing
+    ? Math.max(...activeServiceType.pricing.crews.map((crew) => crew.movers))
+    : null;
 
   const selectedConfig = estimator.details.filter((detail) =>
     selectedDetails.includes(detail.id),
@@ -73,6 +82,22 @@ export function MovingCostEstimator({
         ? current.filter((item) => item !== id)
         : [...current, id],
     );
+  }
+
+  function selectServiceType(nextServiceTypeId: ServiceTypeId) {
+    const nextServiceType = enabledServiceTypes.find(
+      (serviceType) => serviceType.id === nextServiceTypeId,
+    );
+    if (!nextServiceType) return;
+
+    setServiceTypeId(nextServiceTypeId);
+    if (!nextServiceType.crewSizes.includes(crewSize)) {
+      setCrewSize(nextServiceType.crewSizes[0]);
+    }
+
+    const nextMinimumHours =
+      nextServiceType.pricing?.minimumHours ?? estimator.hourStep;
+    if (hours < nextMinimumHours) setHours(nextMinimumHours);
   }
 
   return (
@@ -92,20 +117,66 @@ export function MovingCostEstimator({
 
         <div className="grid overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-xl shadow-slate-900/5 lg:grid-cols-[1.08fr_0.92fr]">
           <div className="p-6 sm:p-9 lg:p-12">
+            <fieldset className="mb-8 border-b border-slate-200 pb-8">
+              <legend className="text-lg font-bold text-navy">
+                What kind of moving help do you need?
+              </legend>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                {enabledServiceTypes.map((serviceType) => {
+                  const selected = serviceType.id === activeServiceType.id;
+
+                  return (
+                    <label
+                      key={serviceType.id}
+                      className={`cursor-pointer rounded-2xl border p-5 transition focus-within:ring-4 focus-within:ring-blue-100 ${selected ? "border-blue-600 bg-blue-50 shadow-sm" : "border-slate-200 bg-white hover:border-blue-300"}`}
+                    >
+                      <input
+                        type="radio"
+                        name="serviceType"
+                        value={serviceType.id}
+                        checked={selected}
+                        onChange={() => selectServiceType(serviceType.id)}
+                        className="sr-only"
+                      />
+                      <span className="flex items-center gap-3">
+                        <span className={`grid size-10 shrink-0 place-items-center rounded-xl ${selected ? "bg-blue-600 text-white" : "bg-slate-100 text-blue-700"}`}>
+                          <Icon name={serviceType.id === "movers_and_truck" ? "truck" : "users"} className="size-5" />
+                        </span>
+                        <span className="font-extrabold text-navy">{serviceType.label}</span>
+                      </span>
+                      <span className="mt-3 block text-sm leading-6 text-slate-600">
+                        {serviceType.description}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </fieldset>
+
             <div className="grid gap-6 sm:grid-cols-2">
               <label className="block">
-                <span className="mb-2.5 block text-sm font-bold text-navy">Crew size</span>
+                <span className="mb-2.5 block text-sm font-bold text-navy">
+                  {activeServiceType.id === "movers_and_truck" ? "Crew + truck" : "Requested crew size"}
+                </span>
                 <select
                   value={crewSize}
                   onChange={(event) => setCrewSize(Number(event.target.value))}
                   className="min-h-13 w-full rounded-xl border border-slate-300 bg-white px-4 text-base font-semibold text-navy outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                 >
-                  {crewOptions.map((size) => (
+                  {activeServiceType.crewSizes.map((size) => (
                     <option key={size} value={size}>
-                      {size} movers
+                      {size} movers{activeServiceType.id === "movers_and_truck" ? " + truck" : ""}
                     </option>
                   ))}
                 </select>
+                <span className="mt-2 block text-xs text-slate-500">
+                  {activeServiceType.pricing?.additionalMoverRate !== undefined &&
+                  largestConfiguredCrew !== null
+                    ? `Each mover beyond ${largestConfiguredCrew} adds ${currency.format(activeServiceType.pricing.additionalMoverRate)}/hour.`
+                    : activeServiceType.pricing?.customQuoteFromMovers !== undefined
+                      ? `Crews of ${activeServiceType.pricing.customQuoteFromMovers} or more require a custom quote.`
+                      : "Crew size helps Guidestone prepare your custom quote."}
+                </span>
               </label>
 
               <label className="block">
@@ -113,7 +184,7 @@ export function MovingCostEstimator({
                 <div className="relative">
                   <input
                     type="number"
-                    min={pricing.minimumHours}
+                    min={minimumHours}
                     max={estimator.maxHours}
                     step={estimator.hourStep}
                     value={hours}
@@ -122,7 +193,7 @@ export function MovingCostEstimator({
                       setHours(
                         Math.min(
                           estimator.maxHours,
-                          Math.max(pricing.minimumHours, value || pricing.minimumHours),
+                          Math.max(minimumHours, value || minimumHours),
                         ),
                       );
                     }}
@@ -131,7 +202,9 @@ export function MovingCostEstimator({
                   <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-400">hours</span>
                 </div>
                 <span className="mt-2 block text-xs text-slate-500">
-                  {pricing.minimumHours}-hour minimum
+                  {activeServiceType.pricing
+                    ? `${minimumHours}-hour minimum`
+                    : "Share the amount of help you expect; final pricing will be confirmed."}
                 </span>
               </label>
             </div>
@@ -152,10 +225,15 @@ export function MovingCostEstimator({
                 />
                 <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-400">miles</span>
               </div>
-              {travelNeedsQuote ? (
+              {activeServiceType.pricingMode === "custom_quote" ? (
                 <span className="mt-2 flex items-center gap-2 text-sm font-bold text-amber-700">
                   <span className="size-2 rounded-full bg-amber-500" />
-                  Contact us for travel pricing
+                  Travel pricing will be confirmed with your custom quote
+                </span>
+              ) : travelNeedsQuote ? (
+                <span className="mt-2 flex items-center gap-2 text-sm font-bold text-amber-700">
+                  <span className="size-2 rounded-full bg-amber-500" />
+                  Custom travel / mobilization quote required
                 </span>
               ) : (
                 <span className="mt-2 block text-xs text-slate-500">
@@ -200,23 +278,35 @@ export function MovingCostEstimator({
           <div className="bg-navy p-6 text-white sm:p-9 lg:p-12">
             <div className="flex items-center justify-between gap-4 border-b border-white/15 pb-6">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-300">Live estimate</p>
-                <h3 className="mt-2 text-2xl font-bold">Your base cost</h3>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-300">
+                  {servicePricingNeedsQuote ? "Quote request" : "Live estimate"}
+                </p>
+                <h3 className="mt-2 text-2xl font-bold">
+                  {servicePricingNeedsQuote ? "Custom quote required" : "Your base cost"}
+                </h3>
               </div>
               <div className="grid size-12 place-items-center rounded-2xl bg-blue-500/20 text-blue-300">
-                <Icon name="truck" />
+                <Icon name={activeServiceType.id === "movers_and_truck" ? "truck" : "users"} />
               </div>
             </div>
 
             <div aria-live="polite">
               <dl className="space-y-4 py-7 text-sm">
                 <div className="flex items-center justify-between gap-4">
-                  <dt className="text-slate-400">Crew size</dt>
+                  <dt className="text-slate-400">Service type</dt>
+                  <dd className="font-bold">{activeServiceType.label}</dd>
+                </div>
+                <div className="flex items-center justify-between gap-4">
+                  <dt className="text-slate-400">Requested crew</dt>
                   <dd className="font-bold">{crewSize} movers</dd>
                 </div>
                 <div className="flex items-center justify-between gap-4">
-                  <dt className="text-slate-400">Hourly crew rate</dt>
-                  <dd className="font-bold">{currency.format(estimate.hourlyRate)}/hour</dd>
+                  <dt className="text-slate-400">Hourly rate</dt>
+                  <dd className={servicePricingNeedsQuote ? "font-bold text-amber-300" : "font-bold"}>
+                    {estimate.hourlyRate === null
+                      ? "Custom quote required"
+                      : `${currency.format(estimate.hourlyRate)}/hour`}
+                  </dd>
                 </div>
                 <div className="flex items-center justify-between gap-4">
                   <dt className="text-slate-400">Estimated hours</dt>
@@ -224,16 +314,20 @@ export function MovingCostEstimator({
                 </div>
                 <div className="flex items-center justify-between gap-4">
                   <dt className="text-slate-400">Estimated labor cost</dt>
-                  <dd className="font-bold">{currency.format(estimate.estimatedLaborCost)}</dd>
+                  <dd className={servicePricingNeedsQuote ? "font-bold text-amber-300" : "font-bold"}>
+                    {estimate.estimatedLaborCost === null
+                      ? "Custom quote required"
+                      : currency.format(estimate.estimatedLaborCost)}
+                  </dd>
                 </div>
                 <div className="flex items-start justify-between gap-4">
-                  <dt className="text-slate-400">Travel fee</dt>
+                  <dt className="text-slate-400">Travel / mobilization fee</dt>
                   <dd className={`max-w-52 text-right font-bold ${travelNeedsQuote ? "text-amber-300" : ""}`}>
                     {estimate.travelFee !== null
                       ? estimate.travelFee === 0
                         ? "$0"
                         : currency.format(estimate.travelFee)
-                      : "Contact us for travel pricing"}
+                      : "Custom quote required"}
                   </dd>
                 </div>
               </dl>
@@ -242,13 +336,22 @@ export function MovingCostEstimator({
                 <div className="flex items-end justify-between gap-5">
                   <p className="font-bold">Estimated base total</p>
                   <p className="text-right text-3xl font-extrabold tracking-[-0.04em] sm:text-4xl">
-                    {estimate.estimatedBaseTotal !== null
-                      ? currency.format(estimate.estimatedBaseTotal)
-                      : `${currency.format(estimate.estimatedLaborCost)} + travel`}
+                    {estimate.estimatedLaborCost === null
+                      ? "Custom quote required"
+                      : estimate.estimatedBaseTotal !== null
+                        ? currency.format(estimate.estimatedBaseTotal)
+                        : `${currency.format(estimate.estimatedLaborCost)} + custom travel quote`}
                   </p>
                 </div>
               </div>
             </div>
+
+            {servicePricingNeedsQuote ? (
+              <div className="mt-6 rounded-xl border border-amber-300/25 bg-amber-300/10 p-4 text-sm leading-6 text-amber-100">
+                <p className="font-bold text-amber-200">Pricing follow-up required</p>
+                <p className="mt-1">{activeServiceType.customQuoteMessage}</p>
+              </div>
+            ) : null}
 
             {quoteItems.length > 0 ? (
               <div className="mt-6 rounded-xl border border-amber-300/25 bg-amber-300/10 p-4 text-sm leading-6 text-amber-100">
@@ -281,7 +384,7 @@ export function MovingCostEstimator({
             >
               {estimator.continueLabel} <ArrowIcon />
             </a>
-            <p className="mt-3 text-center text-xs text-slate-500">Scheduling details are confirmed before booking.</p>
+            <p className="mt-3 text-center text-xs text-slate-500">Move dates and start times are confirmed after request review.</p>
           </div>
         </div>
       </div>

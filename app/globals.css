@@ -74,6 +74,12 @@ body {
   background-size: 32px 32px;
 }
 
+.map-grid-inverse {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.055) 1px, transparent 1px);
+}
+
 .admin-grid {
   background-image:
     radial-gradient(circle at 14% 22%, rgba(22, 133, 248, 0.18), transparent 28rem),
