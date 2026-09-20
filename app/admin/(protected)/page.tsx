@@ -1,11 +1,16 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { BookingFilters, type BookingFilter } from "@/components/admin/booking-filters";
+import { BookingSearch } from "@/components/admin/booking-search";
 import { BookingsList } from "@/components/admin/bookings-list";
 import { AvailabilityManager } from "@/components/admin/availability-manager";
 import { addDays, getDateInTimeZone } from "@/lib/booking-rules";
 import { businessConfig } from "@/lib/business-config";
-import { isBookingStatus } from "@/lib/admin-bookings";
+import {
+  bookingNeedsCustomQuote,
+  formatMoney,
+  isBookingStatus,
+} from "@/lib/admin-bookings";
 import { getAdminContext } from "@/lib/supabase/auth";
 
 export const metadata: Metadata = {
@@ -13,7 +18,10 @@ export const metadata: Metadata = {
 };
 
 type AdminDashboardProps = {
-  searchParams: Promise<{ status?: string | string[] }>;
+  searchParams: Promise<{
+    status?: string | string[];
+    q?: string | string[];
+  }>;
 };
 
 export default async function AdminDashboard({
@@ -24,6 +32,8 @@ export default async function AdminDashboard({
 
   const params = await searchParams;
   const rawStatus = Array.isArray(params.status) ? params.status[0] : params.status;
+  const rawQuery = Array.isArray(params.q) ? params.q[0] : params.q;
+  const searchQuery = (rawQuery ?? "").trim().slice(0, 120);
   const activeFilter: BookingFilter =
     rawStatus && isBookingStatus(rawStatus) ? rawStatus : "all";
   const today = getDateInTimeZone(businessConfig.bookingSettings.timeZone);
@@ -54,6 +64,33 @@ export default async function AdminDashboard({
 
   const bookings = bookingsResult.data ?? [];
   const nextSevenDays = addDays(today, 6);
+  const currentMonth = today.slice(0, 7);
+  const confirmedUpcoming = bookings.filter(
+    (booking) =>
+      booking.status === "confirmed" && booking.requested_date >= today,
+  );
+  const completedThisMonth = bookings.filter(
+    (booking) => {
+      if (booking.status !== "completed") return false;
+
+      const completedMonth = booking.completed_at
+        ? getDateInTimeZone(
+            businessConfig.bookingSettings.timeZone,
+            new Date(booking.completed_at),
+          ).slice(0, 7)
+        : booking.requested_date.slice(0, 7);
+
+      return completedMonth === currentMonth;
+    },
+  );
+  const estimatedValue = (items: typeof bookings) =>
+    items.reduce(
+      (total, booking) =>
+        bookingNeedsCustomQuote(booking) || booking.estimated_base_total === null
+          ? total
+          : total + booking.estimated_base_total,
+      0,
+    );
   const summary = [
     {
       label: "Pending requests",
@@ -62,10 +99,7 @@ export default async function AdminDashboard({
     },
     {
       label: "Confirmed upcoming",
-      value: bookings.filter(
-        (booking) =>
-          booking.status === "confirmed" && booking.requested_date >= today,
-      ).length,
+      value: confirmedUpcoming.length,
       accent: "text-blue-700",
     },
     {
@@ -79,15 +113,43 @@ export default async function AdminDashboard({
       accent: "text-violet-700",
     },
     {
-      label: "Completed jobs",
-      value: bookings.filter((booking) => booking.status === "completed").length,
+      label: "Completed this month",
+      value: completedThisMonth.length,
+      accent: "text-emerald-700",
+    },
+    {
+      label: "Estimated confirmed value",
+      value: formatMoney(estimatedValue(confirmedUpcoming)),
+      accent: "text-blue-700",
+    },
+    {
+      label: "Estimated completed value",
+      value: formatMoney(estimatedValue(completedThisMonth)),
       accent: "text-emerald-700",
     },
   ];
-  const filteredBookings =
+  const statusFilteredBookings =
     activeFilter === "all"
       ? bookings
       : bookings.filter((booking) => booking.status === activeFilter);
+  const normalizedQuery = searchQuery.toLocaleLowerCase();
+  const queryDigits = searchQuery.replace(/\D/g, "");
+  const filteredBookings = searchQuery
+    ? statusFilteredBookings.filter((booking) => {
+        const textMatch = [
+          booking.customer_name,
+          booking.customer_phone,
+          booking.customer_email,
+          booking.pickup_address,
+          booking.destination_address,
+        ].some((value) => value.toLocaleLowerCase().includes(normalizedQuery));
+        const phoneMatch =
+          queryDigits.length > 0 &&
+          booking.customer_phone.replace(/\D/g, "").includes(queryDigits);
+
+        return textMatch || phoneMatch;
+      })
+    : statusFilteredBookings;
 
   return (
     <section className="mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-12 lg:px-10">
@@ -100,14 +162,17 @@ export default async function AdminDashboard({
         <p className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-500">{bookings.length} total requests</p>
       </div>
 
-      <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {summary.map((item) => (
           <article key={item.label} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <p className="text-sm font-semibold text-slate-500">{item.label}</p>
-            <p className={`mt-3 text-4xl font-extrabold tracking-tight ${item.accent}`}>{item.value}</p>
+            <p className={`mt-3 text-3xl font-extrabold tracking-tight ${item.accent}`}>{item.value}</p>
           </article>
         ))}
       </div>
+      <p className="mt-3 text-xs leading-5 text-slate-500">
+        Dollar figures are estimated booking values, not collected revenue. Custom-quote jobs are excluded.
+      </p>
 
       <AvailabilityManager
         blocks={blocksResult.data ?? []}
@@ -116,12 +181,19 @@ export default async function AdminDashboard({
         loadError={Boolean(blocksResult.error)}
       />
 
-      <div className="mt-10 flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
+      <div className="mt-10">
         <div>
           <h2 className="text-xl font-bold text-navy">All bookings</h2>
-          <p className="mt-1 text-sm text-slate-500">Ordered by requested date and preferred start time.</p>
+          <p className="mt-1 text-sm text-slate-500">
+            {filteredBookings.length} matching booking{filteredBookings.length === 1 ? "" : "s"}, ordered by requested date and preferred start time.
+          </p>
         </div>
-        <BookingFilters active={activeFilter} />
+        <div className="mt-5 max-w-3xl">
+          <BookingSearch query={searchQuery} status={activeFilter} />
+        </div>
+        <div className="mt-4">
+          <BookingFilters active={activeFilter} query={searchQuery} />
+        </div>
       </div>
 
       <div className="mt-5">

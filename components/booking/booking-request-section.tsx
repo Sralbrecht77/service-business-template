@@ -17,6 +17,7 @@ type BookingRequestSectionProps = {
   company: BusinessConfig["company"];
   settings: BusinessConfig["bookingSettings"];
   serviceTypes: BusinessConfig["serviceTypes"];
+  uploadSettings: BusinessConfig["bookingUploads"];
 };
 
 type BookingStep = "schedule" | "details" | "confirmation";
@@ -115,6 +116,7 @@ export function BookingRequestSection({
   company,
   settings,
   serviceTypes,
+  uploadSettings,
 }: BookingRequestSectionProps) {
   const { estimate } = useBookingFlow();
   const [step, setStep] = useState<BookingStep>("schedule");
@@ -123,6 +125,8 @@ export function BookingRequestSection({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [confirmation, setConfirmation] = useState<BookingConfirmation | null>(null);
+  const [selectedPhotos, setSelectedPhotos] = useState<File[]>([]);
+  const [photoError, setPhotoError] = useState("");
   const [availabilityState, setAvailabilityState] = useState<{
     data: AvailabilityResponse;
     completedVersion: number;
@@ -187,7 +191,7 @@ export function BookingRequestSection({
 
   async function submitBooking(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!estimate || !requestedDate || !requestedTime) return;
+    if (!estimate || !requestedDate || !requestedTime || photoError) return;
 
     const formData = new FormData(event.currentTarget);
     const payload: BookingRequestPayload = {
@@ -214,10 +218,13 @@ export function BookingRequestSection({
     setError("");
 
     try {
+      const requestData = new FormData();
+      requestData.append("booking", JSON.stringify(payload));
+      selectedPhotos.forEach((photo) => requestData.append("photos", photo));
+
       const response = await fetch("/api/bookings", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: requestData,
       });
       const result = (await response.json()) as {
         confirmation?: BookingConfirmation;
@@ -241,6 +248,38 @@ export function BookingRequestSection({
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  function selectPhotos(files: File[]) {
+    setPhotoError("");
+
+    if (files.length > uploadSettings.maxFiles) {
+      setSelectedPhotos([]);
+      setPhotoError(`Choose no more than ${uploadSettings.maxFiles} photos.`);
+      return;
+    }
+
+    const invalidType = files.some(
+      (file) => !uploadSettings.acceptedMimeTypes.includes(file.type),
+    );
+    if (invalidType) {
+      setSelectedPhotos([]);
+      setPhotoError("Photos must be JPEG, PNG, or WebP images.");
+      return;
+    }
+
+    const oversized = files.some(
+      (file) => file.size > uploadSettings.maxFileSizeBytes,
+    );
+    if (oversized) {
+      setSelectedPhotos([]);
+      setPhotoError(
+        `Each photo must be ${Math.floor(uploadSettings.maxFileSizeBytes / 1024 / 1024)} MB or smaller.`,
+      );
+      return;
+    }
+
+    setSelectedPhotos(files);
   }
 
   const selectedTimeLabel =
@@ -402,6 +441,41 @@ export function BookingRequestSection({
                       <span className="mb-2 block text-sm font-bold text-navy">Notes or special instructions</span>
                       <textarea name="moveNotes" rows={5} maxLength={2000} className="booking-input resize-y" placeholder="Access details, item notes, parking instructions, or anything else we should know" />
                     </label>
+                    {uploadSettings.enabled ? (
+                      <div className="sm:col-span-2">
+                        <label htmlFor="booking-photos" className="block">
+                          <span className="mb-2 block text-sm font-bold text-navy">Move photos <span className="font-medium text-slate-400">(optional)</span></span>
+                          <span className="mb-3 block text-xs leading-5 text-slate-500">
+                            Add up to {uploadSettings.maxFiles} JPEG, PNG, or WebP photos. Each photo can be up to {Math.floor(uploadSettings.maxFileSizeBytes / 1024 / 1024)} MB.
+                          </span>
+                          <input
+                            id="booking-photos"
+                            type="file"
+                            accept={uploadSettings.acceptedMimeTypes.join(",")}
+                            multiple
+                            onChange={(event) => selectPhotos(Array.from(event.target.files ?? []))}
+                            className="booking-input cursor-pointer file:mr-4 file:rounded-lg file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:text-sm file:font-bold file:text-blue-800"
+                          />
+                        </label>
+                        {selectedPhotos.length > 0 ? (
+                          <ul className="mt-3 space-y-2">
+                            {selectedPhotos.map((photo, index) => (
+                              <li key={`${photo.name}-${photo.size}-${index}`} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
+                                <span className="min-w-0 truncate font-semibold text-slate-700">{photo.name} <span className="font-normal text-slate-400">({(photo.size / 1024 / 1024).toFixed(1)} MB)</span></span>
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedPhotos((current) => current.filter((_, photoIndex) => photoIndex !== index))}
+                                  className="shrink-0 font-bold text-red-700 hover:text-red-500"
+                                >
+                                  Remove
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : null}
+                        {photoError ? <p role="alert" className="mt-3 text-sm font-semibold text-red-700">{photoError}</p> : null}
+                      </div>
+                    ) : null}
                   </div>
                 </div>
 
@@ -414,7 +488,7 @@ export function BookingRequestSection({
                   </div>
                   <EstimateSummary serviceTypes={serviceTypes} compact />
                   {error ? <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold leading-6 text-red-800">{error}</p> : null}
-                  <button type="submit" disabled={isSubmitting} className="button button-primary w-full disabled:cursor-wait disabled:opacity-60">
+                  <button type="submit" disabled={isSubmitting || Boolean(photoError)} className="button button-primary w-full disabled:cursor-wait disabled:opacity-60">
                     {isSubmitting ? "Submitting request…" : "Submit booking request"}
                     {!isSubmitting ? <ArrowIcon /> : null}
                   </button>
@@ -449,6 +523,11 @@ export function BookingRequestSection({
                   ))}
                 </dl>
                 <div className="p-7 text-center sm:p-9">
+                  {confirmation.photoCount > 0 ? (
+                    <p className="mb-4 text-sm font-semibold text-slate-600">
+                      {confirmation.photoCount} photo{confirmation.photoCount === 1 ? " was" : "s were"} securely attached to this request.
+                    </p>
+                  ) : null}
                   {confirmation.hourlyRate === null && confirmationServiceType ? (
                     <p className="mb-4 rounded-xl bg-amber-50 p-4 text-sm font-semibold leading-6 text-amber-900">
                       {confirmationServiceType.customQuoteMessage}

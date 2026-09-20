@@ -57,11 +57,11 @@ export async function PATCH(request: Request, context: StatusRouteContext) {
     .maybeSingle();
 
   if (error) {
-    if (error.code === "23P01") {
+    if (error.code === "23P01" || error.code === "23505") {
       return NextResponse.json(
         {
           error:
-            "This booking cannot be made active because its date or time is blocked.",
+            "This booking cannot be made active because its date or time is unavailable.",
         },
         { status: 409 },
       );

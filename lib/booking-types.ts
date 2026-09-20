@@ -36,4 +36,5 @@ export type BookingConfirmation = {
   estimatedBaseTotal: number | null;
   estimatedLaborCost: number | null;
   travelFee: number | null;
+  photoCount: number;
 };

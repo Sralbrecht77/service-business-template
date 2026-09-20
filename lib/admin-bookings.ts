@@ -33,7 +33,27 @@ export function formatServiceType(value: BookingServiceType) {
 }
 
 export function bookingNeedsCustomQuote(booking: Booking) {
-  return booking.hourly_rate === null || booking.estimated_labor_cost === null;
+  return (
+    booking.hourly_rate === null ||
+    booking.estimated_labor_cost === null ||
+    booking.travel_fee === null ||
+    booking.estimated_base_total === null ||
+    getBookingSpecialtyItems(booking).some((item) => item.requiresQuote)
+  );
+}
+
+export function getBookingSpecialtyItems(booking: Booking) {
+  const selectedIds = new Set([
+    booking.has_piano ? "piano" : null,
+    booking.has_gun_safe ? "gunSafe" : null,
+    booking.has_heavy_item ? "heavyItem" : null,
+    booking.has_excessive_stairs ? "stairs" : null,
+    booking.has_long_carry ? "longCarry" : null,
+  ]);
+
+  return businessConfig.estimator.details.filter((detail) =>
+    selectedIds.has(detail.id),
+  );
 }
 
 export function formatAdminDate(date: string) {

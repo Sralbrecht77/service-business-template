@@ -106,6 +106,13 @@ export type BusinessConfig = {
     }>;
     temporaryDefaultsNotice: string;
   };
+  bookingUploads: {
+    enabled: boolean;
+    bucket: string;
+    maxFiles: number;
+    maxFileSizeBytes: number;
+    acceptedMimeTypes: string[];
+  };
   whyChooseUs: Array<{
     title: string;
     description: string;
@@ -132,6 +139,11 @@ export type BusinessConfig = {
     rating?: number;
     isPlaceholder?: boolean;
   }>;
+  faqs: Array<{
+    question: string;
+    answer: string;
+  }>;
+  reviewUrl: string | null;
   contact: {
     title: string;
     description: string;
@@ -334,6 +346,13 @@ export const businessConfig = {
     temporaryDefaultsNotice:
       "Scheduling times are request windows and are not guaranteed until confirmed.",
   },
+  bookingUploads: {
+    enabled: true,
+    bucket: "booking-photos",
+    maxFiles: 5,
+    maxFileSizeBytes: 5 * 1024 * 1024,
+    acceptedMimeTypes: ["image/jpeg", "image/png", "image/webp"],
+  },
   whyChooseUs: [
     {
       title: "Straightforward pricing",
@@ -398,6 +417,48 @@ export const businessConfig = {
       isPlaceholder: true,
     },
   ],
+  faqs: [
+    {
+      question: "Do you provide the truck?",
+      answer:
+        "Yes. Choose Movers + Truck when you want Guidestone to provide both the moving crew and truck.",
+    },
+    {
+      question: "Can I hire just the moving crew?",
+      answer:
+        "Yes. Choose Crew Only when you are providing the truck, trailer, POD, or container and need Guidestone to provide the moving crew.",
+    },
+    {
+      question: "Is there a minimum number of hours?",
+      answer: "Both Movers + Truck and Crew Only have a 2-hour minimum.",
+    },
+    {
+      question: "How are travel or mobilization fees calculated?",
+      answer:
+        "Travel pricing is based on the round-trip mileage entered in the estimator. Movers + Truck and Crew Only use separate mileage schedules, which are applied automatically when you select a service type.",
+    },
+    {
+      question: "How far does Guidestone travel?",
+      answer:
+        "Guidestone's primary service area is approximately a 60-mile radius around Wayne County. Longer-distance requests may be available but can require confirmation or a custom quote.",
+    },
+    {
+      question: "Can Guidestone handle safes, pianos, or unusually heavy items?",
+      answer:
+        "Include those items in your estimate and booking request. Pianos, gun safes, and very large or heavy items require review and custom pricing.",
+    },
+    {
+      question: "Is the website estimate the guaranteed final price?",
+      answer:
+        "No. The website provides an estimate. Final pricing can change based on actual time, access, item details, mileage, and move conditions.",
+    },
+    {
+      question: "What information should I provide when booking?",
+      answer:
+        "Provide your preferred date and start time, full FROM and TO addresses, service type, crew and time estimate, round-trip mileage, access details, specialty items, and any optional photos that may help Guidestone review the move.",
+    },
+  ],
+  reviewUrl: null,
   contact: {
     title: "Ready to line up your truck and moving crew?",
     description:

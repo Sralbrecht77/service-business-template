@@ -14,6 +14,7 @@ const navItems = [
   { label: "Pricing", href: "#pricing" },
   { label: "Why us", href: "#why-us" },
   { label: "Service area", href: "#service-area" },
+  { label: "FAQ", href: "#faq" },
 ];
 
 function Container({ children, className = "" }: React.PropsWithChildren<{ className?: string }>) {
@@ -343,6 +344,33 @@ function Testimonials({ config }: HomepageProps) {
   );
 }
 
+function Faq({ config }: HomepageProps) {
+  if (config.faqs.length === 0) return null;
+
+  return (
+    <section id="faq" className="section scroll-mt-6 bg-white">
+      <Container>
+        <SectionHeading
+          eyebrow="Frequently asked questions"
+          title="Helpful details before move day."
+          description="Answers based on Guidestone's current services, estimator, and booking process."
+        />
+        <div className="mt-12 grid gap-4 lg:grid-cols-2">
+          {config.faqs.map((faq) => (
+            <details key={faq.question} className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm open:border-blue-200 open:bg-blue-50/40 sm:p-6">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-5 font-extrabold text-navy marker:content-none">
+                <span>{faq.question}</span>
+                <span aria-hidden="true" className="grid size-8 shrink-0 place-items-center rounded-full bg-blue-50 text-xl text-blue-700 transition group-open:rotate-45">+</span>
+              </summary>
+              <p className="mt-4 border-t border-slate-200 pt-4 text-sm leading-7 text-slate-600">{faq.answer}</p>
+            </details>
+          ))}
+        </div>
+      </Container>
+    </section>
+  );
+}
+
 function Contact({ config }: HomepageProps) {
   return (
     <section id="contact" className="section bg-slate-50">
@@ -426,8 +454,10 @@ export function Homepage({ config }: HomepageProps) {
           company={config.company}
           settings={config.bookingSettings}
           serviceTypes={config.serviceTypes}
+          uploadSettings={config.bookingUploads}
         />
         <Testimonials config={config} />
+        <Faq config={config} />
         <Contact config={config} />
       </main>
       <Footer config={config} />

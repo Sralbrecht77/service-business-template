@@ -37,6 +37,9 @@ export type Database = {
           id: string;
           created_at: string;
           status: BookingStatus;
+          confirmed_at: string | null;
+          completed_at: string | null;
+          cancelled_at: string | null;
           customer_name: string;
           customer_email: string;
           customer_phone: string;
@@ -64,6 +67,9 @@ export type Database = {
           id?: string;
           created_at?: string;
           status?: BookingStatus;
+          confirmed_at?: string | null;
+          completed_at?: string | null;
+          cancelled_at?: string | null;
           customer_name: string;
           customer_email: string;
           customer_phone: string;
@@ -89,6 +95,36 @@ export type Database = {
         };
         Update: Partial<Database["public"]["Tables"]["bookings"]["Insert"]>;
         Relationships: [];
+      };
+      booking_photos: {
+        Row: {
+          id: string;
+          booking_id: string;
+          created_at: string;
+          storage_path: string;
+          original_name: string;
+          mime_type: string;
+          size_bytes: number;
+        };
+        Insert: {
+          id?: string;
+          booking_id: string;
+          created_at?: string;
+          storage_path: string;
+          original_name: string;
+          mime_type: string;
+          size_bytes: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["booking_photos"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "booking_photos_booking_id_fkey";
+            columns: ["booking_id"];
+            isOneToOne: false;
+            referencedRelation: "bookings";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       schedule_blocks: {
         Row: {

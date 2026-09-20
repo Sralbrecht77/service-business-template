@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
 
 type InternalJobNotesProps = {
   bookingId: string;
@@ -11,6 +12,7 @@ export function InternalJobNotes({
   bookingId,
   initialNotes,
 }: InternalJobNotesProps) {
+  const router = useRouter();
   const originalNotes = initialNotes ?? "";
   const [notes, setNotes] = useState(originalNotes);
   const [savedNotes, setSavedNotes] = useState(originalNotes);
@@ -47,6 +49,7 @@ export function InternalJobNotes({
       setNotes(savedValue);
       setSavedNotes(savedValue);
       setMessage({ type: "success", text: "Internal job notes saved." });
+      router.refresh();
     } catch {
       setMessage({
         type: "error",

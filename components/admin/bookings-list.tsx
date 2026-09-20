@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CustomQuoteBadge } from "@/components/admin/custom-quote-badge";
 import { StatusBadge } from "@/components/admin/status-badge";
 import {
   bookingNeedsCustomQuote,
@@ -23,10 +24,9 @@ export function BookingsList({ bookings }: { bookings: Booking[] }) {
     <>
       <div className="space-y-4 lg:hidden">
         {bookings.map((booking) => (
-          <Link
+          <article
             key={booking.id}
-            href={`/admin/bookings/${booking.id}`}
-            className="block rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-blue-300 hover:shadow-md"
+            className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
           >
             <div className="flex items-start justify-between gap-4">
               <div>
@@ -35,8 +35,13 @@ export function BookingsList({ bookings }: { bookings: Booking[] }) {
               </div>
               <StatusBadge status={booking.status} />
             </div>
+            {bookingNeedsCustomQuote(booking) ? <CustomQuoteBadge className="mt-4" /> : null}
             <h3 className="mt-5 text-lg font-bold text-navy">{booking.customer_name}</h3>
             <p className="mt-1 text-sm text-slate-600">{booking.customer_phone} · {booking.customer_email}</p>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <a href={`tel:${booking.customer_phone}`} className="button min-h-11 border border-blue-200 bg-blue-50 px-3 text-blue-800">Call Customer</a>
+              <a href={`mailto:${booking.customer_email}`} className="button min-h-11 border border-blue-200 bg-blue-50 px-3 text-blue-800">Email Customer</a>
+            </div>
             <div className="mt-4 space-y-2 border-t border-slate-100 pt-4 text-sm text-slate-600">
               <p><span className="font-extrabold uppercase tracking-wide text-blue-700">Moving FROM:</span> {booking.pickup_address}</p>
               <p><span className="font-extrabold uppercase tracking-wide text-blue-700">Moving TO:</span> {booking.destination_address}</p>
@@ -45,7 +50,8 @@ export function BookingsList({ bookings }: { bookings: Booking[] }) {
               <span className="font-semibold text-slate-500">{formatServiceType(booking.service_type)} · {booking.crew_size} movers · {booking.estimated_hours} hrs</span>
               <span className="text-right font-extrabold text-navy">{bookingNeedsCustomQuote(booking) ? "Custom quote required" : formatMoney(booking.estimated_base_total)}</span>
             </div>
-          </Link>
+            <Link href={`/admin/bookings/${booking.id}`} className="button button-primary mt-5 w-full">View Booking</Link>
+          </article>
         ))}
       </div>
 
@@ -74,13 +80,19 @@ export function BookingsList({ bookings }: { bookings: Booking[] }) {
                 <td className="px-5 py-5 text-sm text-slate-600">
                   <p>{booking.customer_phone}</p>
                   <p className="mt-1">{booking.customer_email}</p>
+                  <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs font-bold text-blue-700">
+                    <a href={`tel:${booking.customer_phone}`} className="hover:text-blue-500">Call Customer</a>
+                    <a href={`mailto:${booking.customer_email}`} className="hover:text-blue-500">Email Customer</a>
+                  </div>
                 </td>
                 <td className="max-w-80 px-5 py-5 text-sm leading-6 text-slate-600">
                   <p><span className="font-extrabold uppercase tracking-wide text-blue-700">FROM:</span> {booking.pickup_address}</p>
                   <p className="mt-2"><span className="font-extrabold uppercase tracking-wide text-blue-700">TO:</span> {booking.destination_address}</p>
                 </td>
                 <td className="whitespace-nowrap px-5 py-5 text-sm text-slate-600"><span className="font-bold text-navy">{formatServiceType(booking.service_type)}</span><br />{booking.crew_size} movers · {booking.estimated_hours} hours</td>
-                <td className="whitespace-nowrap px-5 py-5 font-extrabold text-navy">{bookingNeedsCustomQuote(booking) ? "Custom quote required" : formatMoney(booking.estimated_base_total)}</td>
+                <td className="whitespace-nowrap px-5 py-5 font-extrabold text-navy">
+                  {bookingNeedsCustomQuote(booking) ? <CustomQuoteBadge /> : formatMoney(booking.estimated_base_total)}
+                </td>
                 <td className="px-5 py-5"><StatusBadge status={booking.status} /></td>
                 <td className="px-5 py-5 text-right">
                   <Link href={`/admin/bookings/${booking.id}`} className="text-sm font-extrabold text-blue-700 hover:text-blue-500">View →</Link>
