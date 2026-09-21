@@ -90,6 +90,12 @@ export default async function BookingDetailPage({ params }: BookingDetailPagePro
   ].sort((left, right) => left.timestamp.localeCompare(right.timestamp));
   const currentStatusMissingTimestamp =
     booking.status !== "pending" && !statusTimestamps[booking.status];
+  const paymentStatusStyle =
+    booking.payment_status === "paid"
+      ? "bg-emerald-100 text-emerald-800 ring-emerald-200"
+      : booking.payment_status === "refunded"
+        ? "bg-amber-100 text-amber-800 ring-amber-200"
+        : "bg-slate-100 text-slate-700 ring-slate-200";
 
   return (
     <>
@@ -147,6 +153,75 @@ export default async function BookingDetailPage({ params }: BookingDetailPagePro
 
         <aside className="space-y-6">
           <StatusManager bookingId={booking.id} status={booking.status} />
+
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-lg font-bold text-navy">Deposit payment</h2>
+              <span className={`rounded-full px-3 py-1 text-xs font-extrabold uppercase tracking-wide ring-1 ${paymentStatusStyle}`}>
+                {booking.payment_status}
+              </span>
+            </div>
+            <dl className="mt-4 space-y-3 text-sm">
+              <div className="flex items-start justify-between gap-4">
+                <dt className="font-semibold text-slate-500">Estimated total</dt>
+                <dd className="text-right font-bold text-navy">
+                  {customQuoteRequired || booking.estimated_base_total === null
+                    ? "Custom quote required"
+                    : formatMoney(booking.estimated_base_total)}
+                </dd>
+              </div>
+              <div className="flex items-start justify-between gap-4">
+                <dt className="font-semibold text-slate-500">Deposit percentage</dt>
+                <dd className="font-bold text-navy">{Math.round(booking.deposit_percentage * 100)}%</dd>
+              </div>
+              <div className="flex items-start justify-between gap-4">
+                <dt className="font-semibold text-slate-500">Deposit amount</dt>
+                <dd className="text-right font-bold text-navy">
+                  {booking.deposit_amount_cents === null
+                    ? "Not set — custom quote"
+                    : formatMoney(booking.deposit_amount_cents / 100)}
+                </dd>
+              </div>
+              <div className="flex items-start justify-between gap-4">
+                <dt className="font-semibold text-slate-500">Deposit paid</dt>
+                <dd className="text-right font-bold text-navy">
+                  {booking.deposit_paid_at
+                    ? formatAdminDateTime(booking.deposit_paid_at)
+                    : "Not paid"}
+                </dd>
+              </div>
+              {booking.stripe_checkout_session_id ? (
+                <div className="border-t border-slate-100 pt-3">
+                  <dt className="font-semibold text-slate-500">Stripe Checkout Session</dt>
+                  <dd className="mt-1 break-all font-mono text-xs text-slate-600">
+                    {booking.stripe_checkout_session_id}
+                  </dd>
+                </div>
+              ) : null}
+            </dl>
+          </section>
+
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-lg font-bold text-navy">Terms</h2>
+            <dl className="mt-4 space-y-3 text-sm">
+              <div className="flex items-start justify-between gap-4">
+                <dt className="font-semibold text-slate-500">Terms accepted</dt>
+                <dd className="font-bold text-navy">{booking.terms_accepted ? "Yes" : "No"}</dd>
+              </div>
+              <div className="flex items-start justify-between gap-4">
+                <dt className="font-semibold text-slate-500">Accepted date/time</dt>
+                <dd className="text-right font-bold text-navy">
+                  {booking.terms_accepted_at
+                    ? formatAdminDateTime(booking.terms_accepted_at)
+                    : "Not recorded"}
+                </dd>
+              </div>
+              <div className="flex items-start justify-between gap-4">
+                <dt className="font-semibold text-slate-500">Terms version</dt>
+                <dd className="font-bold text-navy">{booking.terms_version ?? "Not recorded"}</dd>
+              </div>
+            </dl>
+          </section>
 
           {booking.status === "pending" || booking.status === "confirmed" ? (
             <RescheduleBooking

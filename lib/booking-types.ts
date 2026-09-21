@@ -12,6 +12,7 @@ export type SpecialtySelections = {
 export type BookingEstimate = EstimateResult & SpecialtySelections;
 
 export type BookingRequestPayload = SpecialtySelections & {
+  termsAccepted: boolean;
   customerName: string;
   customerEmail: string;
   customerPhone: string;
@@ -37,4 +38,7 @@ export type BookingConfirmation = {
   estimatedLaborCost: number | null;
   travelFee: number | null;
   photoCount: number;
+  requiresCustomQuote: boolean;
+  depositPercentage: number;
+  depositAmountCents: number | null;
 };

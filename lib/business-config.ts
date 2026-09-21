@@ -113,6 +113,11 @@ export type BusinessConfig = {
     maxFileSizeBytes: number;
     acceptedMimeTypes: string[];
   };
+  terms: {
+    href: string;
+    version: string;
+    lastUpdated: string;
+  };
   whyChooseUs: Array<{
     title: string;
     description: string;
@@ -157,20 +162,21 @@ export type BusinessConfig = {
 
 const moversAndTruckPricing: CrewPricingConfig = {
   crews: [
-    { movers: 2, rate: 125, note: "Crew and moving truck included" },
+    { movers: 2, rate: 125, note: "Hourly crew rate" },
     {
       movers: 3,
       rate: 165,
-      note: "Crew and moving truck included",
+      note: "Hourly crew rate",
       featured: true,
     },
-    { movers: 4, rate: 205, note: "Crew and moving truck included" },
+    { movers: 4, rate: 205, note: "Hourly crew rate" },
   ],
   additionalMoverRate: 40,
   minimumHours: 2,
-  billingNote: "Hourly rates include the selected moving crew and truck.",
+  billingNote:
+    "The same hourly crew rates apply to Movers + Truck and Crew Only. Travel fees vary by service type.",
   startingPriceNote:
-    "A 2-mover job starts at $250 before travel / mobilization and specialty charges.",
+    "A 2-mover job starts at $250 before travel and any specialty charges.",
 };
 
 const crewOnlyPricing: CrewPricingConfig = {
@@ -235,7 +241,7 @@ export const businessConfig = {
     shortName: "Guidestone",
     legalName: "Guidestone Moving Co LLC",
     tagline: "Moving You Forward. Every Step of the Way.",
-    description: "Professional moving services with the crew and truck included.",
+    description: "Professional Movers + Truck and Crew Only moving services.",
   },
   assets: {
     logoPath: "/guidestone-logo.png",
@@ -247,38 +253,28 @@ export const businessConfig = {
     description:
       "Guidestone brings the moving truck and a capable crew for local and regional moves, with straightforward hourly pricing.",
     primaryCta: "Request an estimate",
-    secondaryCta: "View crew + truck pricing",
+    secondaryCta: "View crew pricing",
   },
   services: [
     {
-      title: "Truck + moving crew",
-      description: "A coordinated crew and moving truck for your move from start to finish.",
+      title: "Movers + Truck",
+      description: "A coordinated moving crew and Guidestone truck for your move from start to finish.",
       icon: "truck",
     },
     {
-      title: "Local & regional moves",
-      description: "Moving help for nearby and regional jobs, subject to availability and travel arrangements.",
-      icon: "container",
+      title: "Crew Only",
+      description: "Professional moving help when you already have a truck, trailer, POD, or container.",
+      icon: "users",
     },
     {
-      title: "Loading & unloading",
-      description: "Careful loading and unloading to keep move day organized and efficient.",
+      title: "Loading, unloading & in-home moves",
+      description: "Organized help at either end of a move or between rooms, floors, and areas in a building.",
       icon: "sofa",
     },
     {
-      title: "In-home moves",
-      description: "Move items between rooms, floors, or areas within a building.",
-      icon: "home",
-    },
-    {
-      title: "Heavy lifting",
-      description: "Moving help for bulky, awkward, and difficult household items, with review when needed.",
+      title: "Local, regional & specialty help",
+      description: "Support for nearby and regional jobs, including stairs, long carries, and heavy items that may need review.",
       icon: "weight",
-    },
-    {
-      title: "Stairs & long carries",
-      description: "Plan for routes that require extra time, effort, and coordination.",
-      icon: "stairs",
     },
   ],
   pricing: moversAndTruckPricing,
@@ -353,10 +349,15 @@ export const businessConfig = {
     maxFileSizeBytes: 5 * 1024 * 1024,
     acceptedMimeTypes: ["image/jpeg", "image/png", "image/webp"],
   },
+  terms: {
+    href: "/terms",
+    version: "2026-09-18",
+    lastUpdated: "September 18, 2026",
+  },
   whyChooseUs: [
     {
       title: "Straightforward pricing",
-      description: "Clear crew + truck rates and mileage-based mobilization fees before the work begins.",
+      description: "Clear hourly crew rates with travel fees shown for each service option before you continue.",
       icon: "check",
     },
     {
@@ -365,9 +366,9 @@ export const businessConfig = {
       icon: "users",
     },
     {
-      title: "Truck included",
-      description: "Guidestone provides the moving truck along with your selected crew.",
-      icon: "truck",
+      title: "Flexible service options",
+      description: "Choose Movers + Truck for the complete setup, or Crew Only when transportation is already arranged.",
+      icon: "users",
     },
     {
       title: "Your schedule matters",
@@ -378,7 +379,7 @@ export const businessConfig = {
   estimate: {
     title: "Ready to plan your move?",
     description:
-      "Tell us your preferred crew size, move locations, mileage, and any specialty items. We’ll help you plan the truck and crew.",
+      "Tell us your preferred service, crew size, mileage, and any specialty items. We’ll help you plan the next step.",
     buttonLabel: "Get a moving estimate",
   },
   serviceArea: {
@@ -387,36 +388,12 @@ export const businessConfig = {
     description:
       "Our primary service area is approximately a 60-mile radius around Wayne County. Moves outside that area may be available depending on the job and require confirmation or custom arrangements.",
     status:
-      "Travel / mobilization pricing extends through 75 miles. Longer-distance requests require a custom quote.",
+      "Movers + Truck travel tiers extend through 75 miles; Crew Only travel tiers extend through 60 miles. Longer-distance requests require a custom quote.",
     visualLocation: "Wayne County",
     visualLabel: "Primary service area",
     visualRadius: "Approx. 60-mile radius",
   },
-  testimonials: [
-    {
-      name: "Test Customer One",
-      quote:
-        "The sample moving crew was friendly, careful, and easy to coordinate with from start to finish.",
-      source: "Development demo — crew experience",
-      rating: 5,
-      isPlaceholder: true,
-    },
-    {
-      name: "Test Customer Two",
-      quote: "The sample booking experience was simple and clear.",
-      source: "Development demo — booking experience",
-      rating: 4,
-      isPlaceholder: true,
-    },
-    {
-      name: "Test Customer Three",
-      quote:
-        "For this layout test, the sample team took time with the furniture, handled each piece carefully, and kept the move organized throughout the day.",
-      source: "Development demo — furniture handling",
-      rating: 5,
-      isPlaceholder: true,
-    },
-  ],
+  testimonials: [],
   faqs: [
     {
       question: "Do you provide the truck?",
@@ -460,11 +437,11 @@ export const businessConfig = {
   ],
   reviewUrl: null,
   contact: {
-    title: "Ready to line up your truck and moving crew?",
+    title: "Ready to plan your move?",
     description:
       "Reach out with your move date, locations, and the kind of help you need. We’ll review the details with you.",
     phoneLabel: "606-624-5407",
-    phoneHref: "tel:+16066245407",
+    phoneHref: "tel:6066245407",
     emailLabel: "guidestonemovingco@gmail.com",
     emailHref: "mailto:guidestonemovingco@gmail.com",
     availability: "Move dates and start times are confirmed after request review.",

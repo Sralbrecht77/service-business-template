@@ -6,6 +6,8 @@ export type BookingStatus =
 
 export type BookingServiceType = "movers_and_truck" | "crew_only";
 
+export type PaymentStatus = "unpaid" | "paid" | "refunded";
+
 export type Database = {
   public: {
     Tables: {
@@ -62,6 +64,15 @@ export type Database = {
           has_long_carry: boolean;
           move_notes: string | null;
           admin_notes: string | null;
+          terms_accepted: boolean;
+          terms_accepted_at: string | null;
+          terms_version: string | null;
+          deposit_percentage: number;
+          deposit_amount_cents: number | null;
+          payment_status: PaymentStatus;
+          stripe_checkout_session_id: string | null;
+          stripe_payment_intent_id: string | null;
+          deposit_paid_at: string | null;
         };
         Insert: {
           id?: string;
@@ -92,6 +103,15 @@ export type Database = {
           has_long_carry?: boolean;
           move_notes?: string | null;
           admin_notes?: string | null;
+          terms_accepted?: boolean;
+          terms_accepted_at?: string | null;
+          terms_version?: string | null;
+          deposit_percentage?: number;
+          deposit_amount_cents?: number | null;
+          payment_status?: PaymentStatus;
+          stripe_checkout_session_id?: string | null;
+          stripe_payment_intent_id?: string | null;
+          deposit_paid_at?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["bookings"]["Insert"]>;
         Relationships: [];

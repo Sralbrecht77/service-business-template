@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type Stripe from "stripe";
 import { z } from "zod";
 import { businessConfig, serviceTypeIds } from "@/lib/business-config";
 import {
@@ -7,10 +8,17 @@ import {
 } from "@/lib/booking-photos";
 import { isBookableDate } from "@/lib/booking-rules";
 import { calculateEstimate } from "@/lib/pricing";
+import {
+  BOOKING_DEPOSIT_PERCENTAGE,
+  CHECKOUT_EXPIRATION_SECONDS,
+  calculateDepositAmountCents,
+  getStripe,
+} from "@/lib/stripe";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 const bookingSchema = z
   .object({
+    termsAccepted: z.literal(true),
     customerName: z.string().trim().min(2).max(120),
     customerEmail: z.string().trim().email().max(254),
     customerPhone: z
@@ -43,6 +51,22 @@ function validationError() {
   );
 }
 
+function termsAcceptanceError() {
+  return NextResponse.json(
+    {
+      error:
+        "You must read and agree to the Terms & Conditions before submitting your booking request.",
+    },
+    { status: 400 },
+  );
+}
+
+function logStripeFailure(context: string, error: unknown) {
+  console.error(context, {
+    errorType: error instanceof Error ? error.name : "UnknownError",
+  });
+}
+
 export async function POST(request: Request) {
   const uploadConfig = businessConfig.bookingUploads;
   const contentLength = Number(request.headers.get("content-length") ?? 0);
@@ -70,6 +94,15 @@ export async function POST(request: Request) {
     }
   } catch {
     return validationError();
+  }
+
+  if (
+    typeof body !== "object" ||
+    body === null ||
+    !("termsAccepted" in body) ||
+    body.termsAccepted !== true
+  ) {
+    return termsAcceptanceError();
   }
 
   const parsed = bookingSchema.safeParse(body);
@@ -123,6 +156,40 @@ export async function POST(request: Request) {
     },
     serviceType,
   );
+  const specialtyQuoteRequired = ([
+    ["piano", booking.hasPiano],
+    ["gunSafe", booking.hasGunSafe],
+    ["heavyItem", booking.hasHeavyItem],
+    ["stairs", booking.hasExcessiveStairs],
+    ["longCarry", booking.hasLongCarry],
+  ] as const).some(
+    ([id, selected]) =>
+      selected === true &&
+      estimator.details.some(
+        (detail) => detail.id === id && detail.requiresQuote,
+      ),
+  );
+  const requiresCustomQuote =
+    estimate.requiresCustomQuote || specialtyQuoteRequired;
+  const depositAmountCents =
+    requiresCustomQuote || estimate.estimatedBaseTotal === null
+      ? null
+      : calculateDepositAmountCents(estimate.estimatedBaseTotal);
+
+  let stripe: ReturnType<typeof getStripe> | null = null;
+  if (depositAmountCents !== null) {
+    try {
+      stripe = getStripe();
+    } catch {
+      return NextResponse.json(
+        {
+          error:
+            "Secure deposit checkout is not configured yet. Please contact us directly.",
+        },
+        { status: 503 },
+      );
+    }
+  }
 
   let supabase;
   try {
@@ -160,6 +227,11 @@ export async function POST(request: Request) {
       has_excessive_stairs: booking.hasExcessiveStairs,
       has_long_carry: booking.hasLongCarry,
       move_notes: booking.moveNotes || null,
+      terms_accepted: true,
+      terms_version: businessConfig.terms.version,
+      deposit_percentage: BOOKING_DEPOSIT_PERCENTAGE,
+      deposit_amount_cents: depositAmountCents,
+      payment_status: "unpaid",
     })
     .select("id")
     .single();
@@ -232,6 +304,158 @@ export async function POST(request: Request) {
     }
   }
 
+  if (depositAmountCents !== null && stripe) {
+    const requestOrigin = new URL(request.url).origin;
+    let checkoutSession: Stripe.Checkout.Session;
+
+    try {
+      checkoutSession = await stripe.checkout.sessions.create(
+        {
+          mode: "payment",
+          payment_method_types: ["card"],
+          client_reference_id: createdBooking.id,
+          customer_email: booking.customerEmail,
+          metadata: {
+            booking_id: createdBooking.id,
+          },
+          payment_intent_data: {
+            metadata: {
+              booking_id: createdBooking.id,
+            },
+          },
+          line_items: [
+            {
+              quantity: 1,
+              price_data: {
+                currency: "usd",
+                unit_amount: depositAmountCents,
+                product_data: {
+                  name: "Guidestone Moving - 20% Booking Deposit",
+                  description:
+                    "Deposit only. The remaining move balance is handled separately by Guidestone Moving.",
+                },
+              },
+            },
+          ],
+          expires_at:
+            Math.floor(Date.now() / 1000) + CHECKOUT_EXPIRATION_SECONDS,
+          success_url: `${requestOrigin}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `${requestOrigin}/payment/cancel?booking_id=${encodeURIComponent(createdBooking.id)}`,
+        },
+        {
+          idempotencyKey: `guidestone-booking-deposit-${createdBooking.id}`,
+        },
+      );
+    } catch (checkoutError) {
+      logStripeFailure("Stripe Checkout Session creation failed", checkoutError);
+      const cancellationResult = await supabase
+        .from("bookings")
+        .update({ status: "cancelled" })
+        .eq("id", createdBooking.id)
+        .eq("status", "pending")
+        .eq("payment_status", "unpaid");
+
+      if (cancellationResult.error) {
+        console.error("Failed to release booking after Checkout creation error", {
+          code: cancellationResult.error.code,
+        });
+      }
+
+      return NextResponse.json(
+        {
+          error:
+            "Secure checkout could not be started. No payment was taken. Please try again; if the slot appears unavailable, contact Guidestone.",
+        },
+        { status: 502 },
+      );
+    }
+
+    if (!checkoutSession.url) {
+      try {
+        await stripe.checkout.sessions.expire(checkoutSession.id);
+      } catch (expirationError) {
+        logStripeFailure(
+          "Checkout Session cleanup after missing URL failed",
+          expirationError,
+        );
+      }
+
+      const cancellationResult = await supabase
+        .from("bookings")
+        .update({
+          status: "cancelled",
+          stripe_checkout_session_id: checkoutSession.id,
+        })
+        .eq("id", createdBooking.id)
+        .eq("status", "pending")
+        .eq("payment_status", "unpaid");
+
+      if (cancellationResult.error) {
+        console.error("Failed to release booking after missing Checkout URL", {
+          code: cancellationResult.error.code,
+        });
+      }
+
+      return NextResponse.json(
+        {
+          error:
+            "Secure checkout is temporarily unavailable. No payment was taken; please try again.",
+        },
+        { status: 502 },
+      );
+    }
+
+    const checkoutUpdate = await supabase
+      .from("bookings")
+      .update({ stripe_checkout_session_id: checkoutSession.id })
+      .eq("id", createdBooking.id)
+      .eq("status", "pending")
+      .eq("payment_status", "unpaid")
+      .is("stripe_checkout_session_id", null)
+      .select("id")
+      .maybeSingle();
+
+    if (checkoutUpdate.error || !checkoutUpdate.data) {
+      try {
+        await stripe.checkout.sessions.expire(checkoutSession.id);
+      } catch (expirationError) {
+        logStripeFailure(
+          "Checkout Session cleanup after booking update failure failed",
+          expirationError,
+        );
+      }
+
+      const cancellationResult = await supabase
+        .from("bookings")
+        .update({
+          status: "cancelled",
+          stripe_checkout_session_id: checkoutSession.id,
+        })
+        .eq("id", createdBooking.id)
+        .eq("status", "pending")
+        .eq("payment_status", "unpaid");
+
+      if (cancellationResult.error) {
+        console.error("Failed to release booking after Checkout save error", {
+          code: cancellationResult.error.code,
+        });
+      }
+
+      return NextResponse.json(
+        {
+          error:
+            "Secure checkout could not be linked to your request. No payment was taken; please try again.",
+        },
+        { status: 502 },
+      );
+    }
+
+    return NextResponse.json(
+      { checkoutUrl: checkoutSession.url },
+      { status: 201 },
+    );
+  }
+
   return NextResponse.json(
     {
       confirmation: {
@@ -245,6 +469,9 @@ export async function POST(request: Request) {
         estimatedLaborCost: estimate.estimatedLaborCost,
         travelFee: estimate.travelFee,
         photoCount: photos.length,
+        requiresCustomQuote,
+        depositPercentage: BOOKING_DEPOSIT_PERCENTAGE,
+        depositAmountCents: null,
       },
     },
     { status: 201 },

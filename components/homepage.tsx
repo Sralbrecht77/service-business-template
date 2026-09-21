@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { ArrowIcon, Icon } from "@/components/icons";
 import { BookingFlowProvider } from "@/components/booking/booking-flow-provider";
 import { BookingRequestSection } from "@/components/booking/booking-request-section";
@@ -87,7 +88,7 @@ function Hero({ config }: HomepageProps) {
     <section id="top" className="hero-grid relative overflow-hidden bg-navy pt-20 text-white">
       <div className="absolute -right-40 top-28 size-[32rem] rounded-full border border-blue-400/15" />
       <div className="absolute -right-16 top-56 size-72 rounded-full border border-blue-400/15" />
-      <Container className="relative grid min-h-[760px] items-center gap-14 py-20 lg:grid-cols-[1.14fr_0.86fr] lg:py-24">
+      <Container className="relative grid min-h-[700px] items-center gap-12 py-16 sm:py-20 lg:min-h-[720px] lg:grid-cols-[1.14fr_0.86fr] lg:py-24">
         <div className="pt-6 lg:pt-0">
           <div className="mb-7 flex items-center gap-3 text-sm font-bold uppercase tracking-[0.19em] text-blue-300">
             <span className="h-px w-9 bg-blue-400" />
@@ -99,6 +100,9 @@ function Hero({ config }: HomepageProps) {
           <p className="mt-7 max-w-2xl text-lg leading-8 text-slate-300 sm:text-xl">
             {config.hero.description}
           </p>
+          <p className="mt-4 max-w-2xl text-sm font-semibold leading-6 text-blue-100 sm:text-base">
+            Already have a truck, trailer, POD, or container? Crew-only moving help is available too.
+          </p>
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
             <a href="#estimator" className="button button-primary">
               {config.hero.primaryCta} <ArrowIcon />
@@ -108,7 +112,7 @@ function Hero({ config }: HomepageProps) {
             </a>
           </div>
           <div className="mt-10 flex flex-wrap gap-x-7 gap-y-3 border-t border-white/15 pt-6 text-sm font-semibold text-slate-300">
-            {["Truck included", "Crew included", `${config.pricing.minimumHours}-hour minimum`].map((item) => (
+            {["Movers + Truck", "Crew Only available", `${config.pricing.minimumHours}-hour minimum`].map((item) => (
               <span key={item} className="flex items-center gap-2">
                 <span className="grid size-5 place-items-center rounded-full bg-blue-500/20 text-blue-300"><Icon name="check" className="size-3" /></span>
                 {item}
@@ -130,7 +134,7 @@ function Hero({ config }: HomepageProps) {
               sizes="(max-width: 1024px) 90vw, 42vw"
             />
             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950 via-slate-950/90 to-transparent px-6 pb-6 pt-20 sm:px-8 sm:pb-8">
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-300">Crew + truck included</p>
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-300">Primary service · Movers + Truck</p>
               <div className="mt-2 flex items-end justify-between gap-4">
                 <p className="text-xl font-bold text-white sm:text-2xl">Moving service from ${config.pricing.crews[0].rate}/hour</p>
                 <Icon name="truck" className="size-8 shrink-0 text-blue-300" />
@@ -152,18 +156,18 @@ function Services({ config }: HomepageProps) {
   return (
     <section id="services" className="section bg-white">
       <Container>
-        <div className="flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
-          <SectionHeading eyebrow="What we do" title="Professional help for every part of the move." description="Guidestone brings the truck and moving crew to help get your belongings where they need to go." />
-          <p className="max-w-sm border-l-2 border-blue-500 pl-5 text-sm font-medium leading-6 text-slate-500">Moving support for local and regional jobs, with custom arrangements available when needed.</p>
+        <div className="flex flex-col justify-between gap-7 lg:flex-row lg:items-end">
+          <SectionHeading eyebrow="What we do" title="The moving help that fits your plans." description="Choose the complete Movers + Truck setup or bring your own transportation and book Crew Only help." />
+          <p className="max-w-sm border-l-2 border-blue-500 pl-5 text-sm font-medium leading-6 text-slate-500">Local and regional support for loading, unloading, in-home moves, and more.</p>
         </div>
-        <div className="mt-14 grid gap-px overflow-hidden rounded-3xl border border-slate-200 bg-slate-200 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-10 grid gap-px overflow-hidden rounded-3xl border border-slate-200 bg-slate-200 sm:grid-cols-2 lg:grid-cols-4">
           {config.services.map((service) => (
-            <article key={service.title} className="group bg-white p-7 transition hover:bg-blue-50/60 sm:p-8">
+            <article key={service.title} className="group bg-white p-6 transition hover:bg-blue-50/60 sm:p-7">
               <div className="grid size-12 place-items-center rounded-2xl bg-blue-50 text-blue-600 transition group-hover:bg-blue-600 group-hover:text-white">
                 <Icon name={service.icon} />
               </div>
-              <h3 className="mt-6 text-xl font-bold tracking-tight text-navy">{service.title}</h3>
-              <p className="mt-3 leading-7 text-slate-600">{service.description}</p>
+              <h3 className="mt-5 text-lg font-bold tracking-tight text-navy">{service.title}</h3>
+              <p className="mt-3 text-sm leading-6 text-slate-600">{service.description}</p>
             </article>
           ))}
         </div>
@@ -177,21 +181,21 @@ function Pricing({ config }: HomepageProps) {
     <section id="pricing" className="section bg-slate-50">
       <Container>
         <div className="flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
-          <SectionHeading eyebrow="Crew + truck pricing" title="Pick the crew that fits the job." description={config.pricing.billingNote} />
+          <SectionHeading eyebrow="Hourly crew pricing" title="Pick the crew that fits the job." description={config.pricing.billingNote} />
           <div className="max-w-md rounded-2xl border border-blue-200 bg-blue-50 px-5 py-4 text-sm font-semibold leading-6 text-blue-900">
             {config.pricing.startingPriceNote}
           </div>
         </div>
-        <div className="mt-12 grid gap-5 lg:grid-cols-3">
+        <div className="mt-10 grid gap-5 lg:grid-cols-3">
           {config.pricing.crews.map((crew) => (
-            <article key={crew.movers} className={`relative flex min-h-72 flex-col rounded-3xl border p-7 sm:p-8 ${crew.featured ? "border-blue-600 bg-navy text-white shadow-xl shadow-blue-950/15" : "border-slate-200 bg-white text-navy"}`}>
+            <article key={crew.movers} className={`relative flex min-h-64 flex-col rounded-3xl border p-7 ${crew.featured ? "border-blue-600 bg-navy text-white shadow-xl shadow-blue-950/15" : "border-slate-200 bg-white text-navy"}`}>
               {crew.featured ? <span className="absolute right-6 top-0 -translate-y-1/2 rounded-full bg-blue-500 px-3 py-1 text-[0.65rem] font-extrabold uppercase tracking-[0.16em] text-white">Most popular</span> : null}
               <div className="flex items-center justify-between">
                 <Icon name="users" className={`size-8 ${crew.featured ? "text-blue-300" : "text-blue-600"}`} />
                 <span className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Per hour</span>
               </div>
-              <h3 className="mt-8 text-2xl font-bold">{crew.movers} movers + truck</h3>
-              <p className="mt-2 text-sm text-slate-400">{crew.note}</p>
+              <h3 className="mt-7 text-2xl font-bold">{crew.movers} movers</h3>
+              <p className={`mt-2 text-sm ${crew.featured ? "text-slate-300" : "text-slate-500"}`}>Same hourly rate for both service types</p>
               <p className="mt-auto pt-8 text-5xl font-extrabold tracking-[-0.045em]">${crew.rate}<span className={`ml-1 text-base font-semibold ${crew.featured ? "text-slate-400" : "text-slate-500"}`}>/hr</span></p>
             </article>
           ))}
@@ -205,33 +209,37 @@ function Pricing({ config }: HomepageProps) {
             Final cost also depends on travel and specialty items.
           </p>
         </div>
-      </Container>
-    </section>
-  );
-}
+        <details className="group mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-6 py-5 font-extrabold text-navy marker:content-none">
+            <span>
+              Travel fees by service type
+              <span className="mt-1 block text-sm font-medium text-slate-500">Movers + Truck and Crew Only use different round-trip mileage schedules.</span>
+            </span>
+            <span aria-hidden="true" className="grid size-8 shrink-0 place-items-center rounded-full bg-blue-50 text-xl text-blue-700 transition group-open:rotate-45">+</span>
+          </summary>
+          <div className="grid gap-px border-t border-slate-200 bg-slate-200 lg:grid-cols-2">
+            {config.serviceTypes.map((serviceType) => {
+              if (!serviceType.enabled || !serviceType.travelFees) return null;
 
-function TravelFees({ config }: HomepageProps) {
-  return (
-    <section className="section bg-white">
-      <Container className="grid gap-12 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
-        <div>
-          <SectionHeading eyebrow="Travel / mobilization fees" title="Simple mileage. No guesswork." description="Travel / mobilization is calculated using round-trip mileage, so you can see the applicable fee at a glance." />
-          <div className="mt-8 rounded-2xl border border-amber-200 bg-amber-50 p-5">
-            <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-amber-700">Quote required</p>
-            <p className="mt-2 text-sm leading-6 text-amber-950">{config.specialItems.join(", ")}, and other unusually large or heavy items require a custom quote.</p>
+              return (
+                <div key={serviceType.id} className="bg-slate-50 p-5 sm:p-6">
+                  <h3 className="font-extrabold text-navy">{serviceType.label}</h3>
+                  <dl className="mt-4 divide-y divide-slate-200 rounded-xl border border-slate-200 bg-white">
+                    {serviceType.travelFees.map((tier) => (
+                      <div key={tier.mileage} className="flex items-center justify-between gap-4 px-4 py-3 text-sm">
+                        <dt className="font-medium text-slate-600">{tier.mileage}</dt>
+                        <dd className="text-right font-extrabold text-navy">{tier.fee === null ? "Custom quote" : tier.fee === 0 ? "$0" : `$${tier.fee}`}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+              );
+            })}
           </div>
-        </div>
-        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-slate-50">
-          <div className="grid grid-cols-2 border-b border-slate-200 bg-navy px-6 py-4 text-xs font-bold uppercase tracking-[0.16em] text-slate-300 sm:px-8">
-            <span>Round-trip mileage</span><span className="text-right">Travel / mobilization</span>
-          </div>
-          {config.travelFees.map((tier, index) => (
-            <div key={tier.mileage} className={`grid grid-cols-2 items-center px-6 py-5 sm:px-8 ${index < config.travelFees.length - 1 ? "border-b border-slate-200" : ""}`}>
-              <span className="font-semibold text-slate-700">{tier.mileage}</span>
-              <span className="text-right text-xl font-extrabold text-navy">{tier.fee === null ? "Custom quote" : `$${tier.fee}`}</span>
-            </div>
-          ))}
-        </div>
+          <p className="border-t border-slate-200 bg-amber-50 px-6 py-4 text-sm leading-6 text-amber-950">
+            <span className="font-extrabold">Specialty item review:</span> {config.specialItems.join(", ")}, and other unusually large or heavy items require a custom quote.
+          </p>
+        </details>
       </Container>
     </section>
   );
@@ -242,7 +250,7 @@ function WhyChooseUs({ config }: HomepageProps) {
     <section id="why-us" className="section relative overflow-hidden bg-navy text-white">
       <div className="absolute left-0 top-0 h-full w-1/3 bg-blue-600/5" />
       <Container className="relative">
-        <SectionHeading eyebrow={`Why ${config.company.shortName}`} title="Moving help you can feel good about." description="A clear, focused service that brings the truck and crew together for a smoother move day." inverse />
+        <SectionHeading eyebrow={`Why ${config.company.shortName}`} title="Moving help you can feel good about." description="Clear options, practical planning, and the crew setup that fits your move." inverse />
         <div className="mt-14 grid gap-x-10 gap-y-12 sm:grid-cols-2 lg:grid-cols-4">
           {config.whyChooseUs.map((item, index) => (
             <article key={item.title}>
@@ -255,20 +263,6 @@ function WhyChooseUs({ config }: HomepageProps) {
             </article>
           ))}
         </div>
-      </Container>
-    </section>
-  );
-}
-
-function EstimateCta({ config }: HomepageProps) {
-  return (
-    <section id="estimate" className="bg-blue-600 py-12 text-white sm:py-16">
-      <Container className="flex flex-col justify-between gap-8 lg:flex-row lg:items-center">
-        <div className="max-w-3xl">
-          <h2 className="text-3xl font-bold tracking-[-0.035em] sm:text-4xl">{config.estimate.title}</h2>
-          <p className="mt-4 max-w-2xl leading-7 text-blue-100">{config.estimate.description}</p>
-        </div>
-        <a href="#estimator" className="button button-light shrink-0">{config.estimate.buttonLabel} <ArrowIcon /></a>
       </Container>
     </section>
   );
@@ -305,7 +299,8 @@ function ServiceArea({ config }: HomepageProps) {
 }
 
 function Testimonials({ config }: HomepageProps) {
-  if (config.testimonials.length === 0) return null;
+  const publicTestimonials = config.testimonials.filter((testimonial) => !testimonial.isPlaceholder);
+  if (publicTestimonials.length === 0) return null;
 
   return (
     <section id="testimonials" className="section bg-slate-50">
@@ -315,7 +310,7 @@ function Testimonials({ config }: HomepageProps) {
           title="What customers are saying."
         />
         <div className="mt-12 grid gap-5 lg:grid-cols-3">
-          {config.testimonials.map((testimonial) => (
+          {publicTestimonials.map((testimonial) => (
             <figure key={`${testimonial.name}-${testimonial.quote}`} className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm sm:p-8">
               {testimonial.isPlaceholder || testimonial.rating ? (
                 <div className="flex flex-wrap items-center justify-between gap-3">
@@ -412,7 +407,7 @@ function Contact({ config }: HomepageProps) {
 
 function Footer({ config }: HomepageProps) {
   return (
-    <footer className="border-t border-white/10 bg-navy py-10 text-white">
+    <footer className="border-t border-white/10 bg-navy px-0 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-10 text-white sm:py-10">
       <Container>
         <div className="flex flex-col justify-between gap-8 sm:flex-row sm:items-center">
           <div className="flex items-center gap-4">
@@ -422,14 +417,30 @@ function Footer({ config }: HomepageProps) {
           <nav aria-label="Footer navigation" className="flex flex-wrap gap-x-6 gap-y-3">
             {navItems.map((item) => <a key={item.href} href={item.href} className="text-sm font-semibold text-slate-400 transition hover:text-white">{item.label}</a>)}
             <a href="#contact" className="text-sm font-semibold text-slate-400 transition hover:text-white">Contact</a>
+            <Link href={config.terms.href} className="text-sm font-semibold text-slate-400 transition hover:text-white">Terms &amp; Conditions</Link>
           </nav>
         </div>
         <div className="mt-9 flex flex-col justify-between gap-2 border-t border-white/10 pt-6 text-xs text-slate-500 sm:flex-row">
           <p>© {new Date().getFullYear()} {config.company.legalName}. All rights reserved.</p>
-          <p>Professional moving crew + truck service</p>
+          <p>Movers + Truck and Crew Only service</p>
         </div>
       </Container>
     </footer>
+  );
+}
+
+function MobileStickyCta({ config }: HomepageProps) {
+  return (
+    <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-3 pt-2 shadow-[0_-8px_24px_rgba(12,30,53,0.12)] backdrop-blur sm:hidden" style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}>
+      <div className="mx-auto grid max-w-md grid-cols-2 gap-2">
+        <a href="tel:6066245407" className="button min-h-11 border border-blue-200 bg-blue-50 px-3 text-blue-800 hover:bg-blue-100" aria-label={`Call ${config.company.shortName} at ${config.contact.phoneLabel}`}>
+          <Icon name="phone" className="size-4" /> Call Guidestone
+        </a>
+        <a href="#estimator" className="button button-primary min-h-11 px-3" aria-label="Go to the moving cost estimator">
+          Get an Estimate
+        </a>
+      </div>
+    </div>
   );
 }
 
@@ -446,21 +457,21 @@ export function Homepage({ config }: HomepageProps) {
           defaultServiceTypeId={config.defaultServiceTypeId}
           estimator={config.estimator}
         />
-        <TravelFees config={config} />
-        <WhyChooseUs config={config} />
-        <EstimateCta config={config} />
-        <ServiceArea config={config} />
         <BookingRequestSection
           company={config.company}
           settings={config.bookingSettings}
           serviceTypes={config.serviceTypes}
           uploadSettings={config.bookingUploads}
+          terms={config.terms}
         />
+        <WhyChooseUs config={config} />
+        <ServiceArea config={config} />
         <Testimonials config={config} />
         <Faq config={config} />
         <Contact config={config} />
       </main>
       <Footer config={config} />
+      <MobileStickyCta config={config} />
     </BookingFlowProvider>
   );
 }

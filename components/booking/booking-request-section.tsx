@@ -18,6 +18,7 @@ type BookingRequestSectionProps = {
   settings: BusinessConfig["bookingSettings"];
   serviceTypes: BusinessConfig["serviceTypes"];
   uploadSettings: BusinessConfig["bookingUploads"];
+  terms: BusinessConfig["terms"];
 };
 
 type BookingStep = "schedule" | "details" | "confirmation";
@@ -117,6 +118,7 @@ export function BookingRequestSection({
   settings,
   serviceTypes,
   uploadSettings,
+  terms,
 }: BookingRequestSectionProps) {
   const { estimate } = useBookingFlow();
   const [step, setStep] = useState<BookingStep>("schedule");
@@ -127,6 +129,8 @@ export function BookingRequestSection({
   const [confirmation, setConfirmation] = useState<BookingConfirmation | null>(null);
   const [selectedPhotos, setSelectedPhotos] = useState<File[]>([]);
   const [photoError, setPhotoError] = useState("");
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [termsError, setTermsError] = useState("");
   const [availabilityState, setAvailabilityState] = useState<{
     data: AvailabilityResponse;
     completedVersion: number;
@@ -192,9 +196,16 @@ export function BookingRequestSection({
   async function submitBooking(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!estimate || !requestedDate || !requestedTime || photoError) return;
+    if (!termsAccepted) {
+      setTermsError(
+        "You must read and agree to the Terms & Conditions before submitting your booking request.",
+      );
+      return;
+    }
 
     const formData = new FormData(event.currentTarget);
     const payload: BookingRequestPayload = {
+      termsAccepted,
       customerName: String(formData.get("customerName") ?? ""),
       customerEmail: String(formData.get("customerEmail") ?? ""),
       customerPhone: String(formData.get("customerPhone") ?? ""),
@@ -216,6 +227,7 @@ export function BookingRequestSection({
 
     setIsSubmitting(true);
     setError("");
+    setTermsError("");
 
     try {
       const requestData = new FormData();
@@ -228,16 +240,27 @@ export function BookingRequestSection({
       });
       const result = (await response.json()) as {
         confirmation?: BookingConfirmation;
+        checkoutUrl?: string;
         error?: string;
       };
 
-      if (!response.ok || !result.confirmation) {
+      if (!response.ok) {
         setError(result.error ?? "We couldn’t submit your request. Please try again.");
         if (response.status === 409) {
           setStep("schedule");
           setRequestedTime("");
           setAvailabilityVersion((version) => version + 1);
         }
+        return;
+      }
+
+      if (result.checkoutUrl) {
+        window.location.assign(result.checkoutUrl);
+        return;
+      }
+
+      if (!result.confirmation) {
+        setError("We couldn’t finish your request. Please try again.");
         return;
       }
 
@@ -293,6 +316,10 @@ export function BookingRequestSection({
       ? "Crew Only travel fee"
       : "Travel / mobilization fee";
 
+  if (!estimate) {
+    return <div id="booking" className="scroll-mt-6" aria-hidden="true" />;
+  }
+
   return (
     <section id="booking" className="section scroll-mt-6 bg-white">
       <div className="mx-auto w-full max-w-7xl px-5 sm:px-8 lg:px-10">
@@ -302,15 +329,7 @@ export function BookingRequestSection({
           <p className="mt-5 text-lg leading-8 text-slate-600">Choose a preferred date and time, then send your move details. This is a request until {company.shortName} confirms it.</p>
         </div>
 
-        {!estimate ? (
-          <div className="mx-auto mt-12 max-w-3xl rounded-3xl border border-blue-200 bg-blue-50 p-8 text-center sm:p-10">
-            <div className="mx-auto grid size-14 place-items-center rounded-2xl bg-blue-600 text-white"><Icon name="clock" /></div>
-            <h3 className="mt-5 text-2xl font-bold text-navy">Start with your moving estimate</h3>
-            <p className="mx-auto mt-3 max-w-xl leading-7 text-slate-600">Choose your service type, crew size, hours, mileage, and move conditions first. We’ll carry those details into your booking request.</p>
-            <a href="#estimator" className="button button-primary mt-7">Build my estimate <ArrowIcon /></a>
-          </div>
-        ) : (
-          <div className="mx-auto mt-12 max-w-6xl">
+        <div className="mx-auto mt-12 max-w-6xl">
             <Progress step={step} />
 
             {step === "schedule" ? (
@@ -487,12 +506,52 @@ export function BookingRequestSection({
                     <p className="mt-3 text-xs leading-5 text-slate-500">This request is not an appointment until {company.shortName} confirms it.</p>
                   </div>
                   <EstimateSummary serviceTypes={serviceTypes} compact />
+                  <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                    <label className="flex cursor-pointer items-start gap-3 text-sm leading-6 text-slate-700">
+                      <input
+                        type="checkbox"
+                        name="termsAccepted"
+                        checked={termsAccepted}
+                        onChange={(event) => {
+                          setTermsAccepted(event.target.checked);
+                          if (event.target.checked) setTermsError("");
+                        }}
+                        aria-invalid={Boolean(termsError)}
+                        aria-describedby={termsError ? "terms-acceptance-error" : undefined}
+                        className="mt-1 size-5 shrink-0 rounded border-slate-300 accent-blue-600"
+                      />
+                      <span>
+                        I have read and agree to the{" "}
+                        <a
+                          href={terms.href}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="font-bold text-blue-700 underline decoration-blue-300 underline-offset-2 hover:text-blue-500"
+                        >
+                          Terms &amp; Conditions
+                        </a>
+                        .
+                      </span>
+                    </label>
+                    {termsError ? (
+                      <p
+                        id="terms-acceptance-error"
+                        role="alert"
+                        className="mt-3 text-sm font-semibold leading-6 text-red-700"
+                      >
+                        {termsError}
+                      </p>
+                    ) : null}
+                    <p className="mt-3 text-xs leading-5 text-slate-500">
+                      Terms version {terms.version}, last updated {terms.lastUpdated}.
+                    </p>
+                  </div>
                   {error ? <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold leading-6 text-red-800">{error}</p> : null}
                   <button type="submit" disabled={isSubmitting || Boolean(photoError)} className="button button-primary w-full disabled:cursor-wait disabled:opacity-60">
-                    {isSubmitting ? "Submitting request…" : "Submit booking request"}
+                    {isSubmitting ? "Preparing secure checkout…" : "Submit booking request"}
                     {!isSubmitting ? <ArrowIcon /> : null}
                   </button>
-                  <p className="text-center text-xs leading-5 text-slate-500">No payment is collected. We’ll contact you to finalize the appointment.</p>
+                  <p className="text-center text-xs leading-5 text-slate-500">When calculated pricing is available, you’ll continue to Stripe for a 20% deposit. Custom-quote requests are reviewed before any deposit is requested.</p>
                 </div>
               </form>
             ) : null}
@@ -528,9 +587,9 @@ export function BookingRequestSection({
                       {confirmation.photoCount} photo{confirmation.photoCount === 1 ? " was" : "s were"} securely attached to this request.
                     </p>
                   ) : null}
-                  {confirmation.hourlyRate === null && confirmationServiceType ? (
+                  {confirmation.requiresCustomQuote ? (
                     <p className="mb-4 rounded-xl bg-amber-50 p-4 text-sm font-semibold leading-6 text-amber-900">
-                      {confirmationServiceType.customQuoteMessage}
+                      Guidestone will contact you about final pricing and any required deposit. No automatic online deposit was created for this custom-quote request.
                     </p>
                   ) : null}
                   <p className="text-sm leading-6 text-slate-600">This is a booking request, not a guaranteed appointment. Keep an eye on your phone and email for confirmation.</p>
@@ -538,8 +597,7 @@ export function BookingRequestSection({
                 </div>
               </div>
             ) : null}
-          </div>
-        )}
+        </div>
       </div>
     </section>
   );

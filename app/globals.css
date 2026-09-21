@@ -5,6 +5,10 @@
   --foreground: #0c1e35;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -34,9 +38,14 @@ body {
   color: white;
 }
 
+:where(a, button, input, select, textarea, summary):focus-visible {
+  outline: 3px solid #87c6ff;
+  outline-offset: 3px;
+}
+
 @layer components {
   .section {
-    @apply py-20 sm:py-24 lg:py-28;
+    @apply py-16 sm:py-20 lg:py-24;
   }
 
   .button {

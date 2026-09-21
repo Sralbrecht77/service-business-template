@@ -37,7 +37,7 @@ export function MovingCostEstimator({
   const [hours, setHours] = useState(
     initialServiceType.pricing?.minimumHours ?? estimator.hourStep,
   );
-  const [mileage, setMileage] = useState(0);
+  const [mileageInput, setMileageInput] = useState("0");
   const [selectedDetails, setSelectedDetails] = useState<string[]>([]);
 
   const activeServiceType =
@@ -45,6 +45,7 @@ export function MovingCostEstimator({
     initialServiceType;
   const minimumHours =
     activeServiceType.pricing?.minimumHours ?? estimator.hourStep;
+  const mileage = mileageInput === "" ? 0 : Number.parseInt(mileageInput, 10);
 
   const estimate = useMemo(
     () =>
@@ -252,12 +253,25 @@ export function MovingCostEstimator({
               <div className="relative">
                 <input
                   type="number"
+                  inputMode="numeric"
                   min={0}
                   step={1}
-                  value={mileage}
+                  value={mileageInput}
+                  placeholder="Enter miles"
+                  onFocus={(event) => event.currentTarget.select()}
+                  onBlur={() => {
+                    if (mileageInput === "") setMileageInput("0");
+                  }}
                   onChange={(event) => {
-                    const value = Number(event.target.value);
-                    setMileage(Math.max(0, value || 0));
+                    const nextValue = event.target.value;
+                    if (nextValue === "") {
+                      setMileageInput("");
+                      return;
+                    }
+
+                    const value = Number(nextValue);
+                    if (!Number.isFinite(value)) return;
+                    setMileageInput(String(Math.max(0, Math.trunc(value))));
                   }}
                   className="min-h-13 w-full rounded-xl border border-slate-300 bg-white px-4 pr-16 text-base font-semibold text-navy outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                 />
