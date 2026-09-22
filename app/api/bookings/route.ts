@@ -13,6 +13,7 @@ import {
   CHECKOUT_EXPIRATION_SECONDS,
   calculateDepositAmountCents,
   getStripe,
+  logStripeError,
 } from "@/lib/stripe";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
@@ -59,12 +60,6 @@ function termsAcceptanceError() {
     },
     { status: 400 },
   );
-}
-
-function logStripeFailure(context: string, error: unknown) {
-  console.error(context, {
-    errorType: error instanceof Error ? error.name : "UnknownError",
-  });
 }
 
 export async function POST(request: Request) {
@@ -347,7 +342,7 @@ export async function POST(request: Request) {
         },
       );
     } catch (checkoutError) {
-      logStripeFailure("Stripe Checkout Session creation failed", checkoutError);
+      logStripeError("Stripe Checkout Session creation failed", checkoutError);
       const cancellationResult = await supabase
         .from("bookings")
         .update({ status: "cancelled" })
@@ -374,7 +369,7 @@ export async function POST(request: Request) {
       try {
         await stripe.checkout.sessions.expire(checkoutSession.id);
       } catch (expirationError) {
-        logStripeFailure(
+        logStripeError(
           "Checkout Session cleanup after missing URL failed",
           expirationError,
         );
@@ -419,7 +414,7 @@ export async function POST(request: Request) {
       try {
         await stripe.checkout.sessions.expire(checkoutSession.id);
       } catch (expirationError) {
-        logStripeFailure(
+        logStripeError(
           "Checkout Session cleanup after booking update failure failed",
           expirationError,
         );

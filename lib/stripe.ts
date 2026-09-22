@@ -7,6 +7,20 @@ export const CHECKOUT_EXPIRATION_SECONDS = 30 * 60;
 
 let stripeClient: Stripe | undefined;
 
+export function logStripeError(context: string, error: unknown) {
+  const stripeError =
+    error instanceof Stripe.errors.StripeError ? error : undefined;
+
+  console.error(context, {
+    errorName: error instanceof Error ? error.name : "UnknownError",
+    stripeType: stripeError?.type ?? null,
+    code: stripeError?.code ?? null,
+    statusCode: stripeError?.statusCode ?? null,
+    message: error instanceof Error ? error.message : "Unknown Stripe error",
+    requestId: stripeError?.requestId ?? null,
+  });
+}
+
 export function getStripe() {
   const secretKey = process.env.STRIPE_SECRET_KEY;
 

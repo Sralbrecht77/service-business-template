@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getStripe } from "@/lib/stripe";
+import { getStripe, logStripeError } from "@/lib/stripe";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import type { Database } from "@/lib/supabase/database.types";
 
@@ -89,7 +89,8 @@ export async function GET(request: Request) {
     }
 
     return cancelPage(requestUrl.origin, "expired", bookingId);
-  } catch {
+  } catch (error) {
+    logStripeError("Stripe Checkout Session retrieval failed", error);
     return cancelPage(requestUrl.origin, "unavailable", bookingId);
   }
 }
