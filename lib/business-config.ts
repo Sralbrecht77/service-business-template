@@ -15,6 +15,8 @@ export type IconName =
 
 export const serviceTypeIds = ["movers_and_truck", "crew_only"] as const;
 
+const businessEmail = "guidestonemovingco@yahoo.com";
+
 export type ServiceTypeId = (typeof serviceTypeIds)[number];
 
 export type CrewPricingConfig = {
@@ -442,8 +444,8 @@ export const businessConfig = {
       "Reach out with your move date, locations, and the kind of help you need. We’ll review the details with you.",
     phoneLabel: "606-624-5407",
     phoneHref: "tel:6066245407",
-    emailLabel: "guidestonemovingco@gmail.com",
-    emailHref: "mailto:guidestonemovingco@gmail.com",
+    emailLabel: businessEmail,
+    emailHref: `mailto:${businessEmail}`,
     availability: "Move dates and start times are confirmed after request review.",
   },
 } satisfies BusinessConfig;
